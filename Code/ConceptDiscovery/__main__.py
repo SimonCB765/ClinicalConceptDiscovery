@@ -7,7 +7,7 @@ import os
 import sys
 
 # User imports.
-from . import CodeDictionary
+from . import CodeDictionaries
 
 
 #------------------------#
