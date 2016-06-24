@@ -3,11 +3,17 @@
 # Python imports.
 import argparse
 import datetime
+import json
 import os
 import sys
 
 # User imports.
 from . import CodeDictionaries
+from Utilities import json_to_ascii
+
+# Globals.
+PYVERSION = sys.version_info[0]  # Determine major version number.
+VALIDDICTS = ["readv2", "snomed"]  # The valid dictionary types accepted
 
 
 #------------------------#
@@ -22,6 +28,11 @@ parser.add_argument("input", help="The location of the file containing the conce
 
 # Optional arguments.
 parser.add_argument("-c", "--config", help="The location of the configuration file to use.", type=str)
+parser.add_argument("-d", "--dictionary",
+                    choices=VALIDDICTS,
+                    default=VALIDDICTS[0],
+                    help="The dictionary being used to construct the code hierarchy",
+                    type=str.lower)
 parser.add_argument("-o", "--output",
                     help="The location of the directory to write the output files to. Default: a timestamped "
                          "subdirectory in the Results directory.",
@@ -84,3 +95,35 @@ except Exception as e:
     print("\n\nThe following errors were encountered while parsing the input arguments:\n")
     print("The output directory could not be created - {0:s}".format(str(e)))
     sys.exit()
+
+#---------------------------------------------#
+# Parse and Validate Configuration Parameters #
+#---------------------------------------------#
+errorsFound = []
+
+# Parse the JSON file of parameters.
+readParams = open(fileConfig, 'r')
+parsedArgs = json.load(readParams)
+if PYVERSION == 2:
+    parsedArgs = json_to_ascii.json_to_ascii(parsedArgs)  # Convert all unicode characters to ascii for Python < v3.
+readParams.close()
+
+# Check that the file containing the mapping from codes to descriptions is present.
+if "CodeDescriptionFile" not in parsedArgs:
+    errorsFound.append("There must be a parameter field called CodeDescriptionFile.")
+elif not os.path.isfile(parsedArgs["CodeDescriptionFile"]):
+    errorsFound.append("The file of code to description mappings does not exist.")
+
+# Print error messages.
+if errorsFound:
+    print("\n\nThe following errors were encountered while parsing the input parameters:\n")
+    print('\n'.join(errorsFound))
+    sys.exit()
+
+# Extract parameters.
+fileCodeDescriptions = parsedArgs["CodeDescriptionFile"]
+
+#-----------------------------#
+# Perform the Code Extraction #
+#-----------------------------#
+codeDictionary = CodeDictionaries.CodeDictionary(fileCodeDescriptions, dictType=args.dictionary)

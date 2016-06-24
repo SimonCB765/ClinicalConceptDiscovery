@@ -24,7 +24,7 @@ class CodeDictionary(object):
 
     """
 
-    def __new__(cls, fileCodeDescriptions, dictType="Read"):
+    def __new__(cls, fileCodeDescriptions, dictType="Readv2"):
         """Create a code dictionary.
 
         :param dictType:                The type of code dictionary to create.
@@ -38,7 +38,7 @@ class CodeDictionary(object):
 
         if cls is CodeDictionary:
             # An attempt is being made to create a CodeDictionary, so determine which subclass to generate.
-            if dictType.lower() == "read":
+            if dictType.lower() == "readv2":
                 # Generate a ReadDictionary.
                 return super(CodeDictionary, cls).__new__(ReadDictionary)
             elif dictType.lower() == "snomed":
@@ -59,12 +59,32 @@ class CodeDictionary(object):
 
 
 class ReadDictionary(CodeDictionary):
+    """Create a Read code dictionary."""
 
-    def __init__(self, fileCodeDescriptions):
+    def __init__(self, fileCodeDescriptions, dictType):
+        """Initialise the Read code dictionary.
+
+        :param dictType:                The type of code dictionary to create.
+        :type dictType:                 str
+        :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
+        :type fileCodeDescriptions:     str
+
+        """
+
         pass
 
 
 class SNOMEDDictionary(CodeDictionary):
+    """Create a SNOMED code dictionary."""
 
-    def __init__(self, fileCodeDescriptions):
+    def __init__(self, fileCodeDescriptions, dictType):
+        """Initialise the SNOMED code dictionary.
+
+        :param dictType:                The type of code dictionary to create.
+        :type dictType:                 str
+        :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
+        :type fileCodeDescriptions:     str
+
+        """
+
         pass
