@@ -1,5 +1,8 @@
 """Classes for storing and navigating a hierarchical code dictionary."""
 
+# Python imports.
+from collections import defaultdict
+
 
 class CodeDictionary(object):
     """Class responsible for managing access to a clinical code hierarchy.
@@ -46,7 +49,7 @@ class CodeDictionary(object):
                 return super(CodeDictionary, cls).__new__(SNOMEDDictionary)
         else:
             # An attempt is being made to create a CodeDictionary subclass, so create the subclass.
-            return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions)
+            return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions, dictType)
 
     def get_children(self, levelsToCheck=1):
         pass
@@ -71,7 +74,22 @@ class ReadDictionary(CodeDictionary):
 
         """
 
-        pass
+        # Initialise the code hierarchy.
+        self.mapCodeToDescription = defaultdict(lambda: {"Parents": [], "Children": [], "Description": ""})
+
+        if dictType == "readv2":
+            # A Read v2 code hierarchy is being constructed.
+            with open(fileCodeDescriptions, 'r') as fidCodeDescriptions:
+                for line in fidCodeDescriptions:
+                    line = line.strip()
+                    chunks = line.split('\t')
+                    code = chunks[0]
+                    self.mapCodeToDescription[code]["Description"] = chunks[1]
+                    if len(code) > 1:
+                        # If the code consists of at least 2 characters, then the code has a parent and is therefore the
+                        # child of that parent.
+                        self.mapCodeToDescription[code]["Parents"] = [(code[:-1], None)]
+                        self.mapCodeToDescription[code[:-1]]["Children"].append((code, None))
 
 
 class SNOMEDDictionary(CodeDictionary):
