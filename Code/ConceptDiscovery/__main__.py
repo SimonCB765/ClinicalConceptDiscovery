@@ -46,6 +46,7 @@ parser.add_argument("-w", "--overwrite",
 #------------------------------#
 args = parser.parse_args()
 dirTop = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)  # The directory containing all program files.
+dirTop = os.path.abspath(dirTop)
 errorsFound = []  # Container for any error messages generated during the validation.
 
 # Validate the input file.
@@ -61,11 +62,11 @@ if fileConfig:
         errorsFound.append("The configuration file location does not contain a file.")
 else:
     # Use the default configuration file.
-    dirConfig = os.path.join(os.path.abspath(dirTop), "ConfigFiles")
+    dirConfig = os.path.join(dirTop, "ConfigFiles")
     fileConfig = os.path.join(dirConfig, "ConceptDiscoveryConfig.json")
 
 # Validate the output directory.
-dirResults = os.path.join(os.path.abspath(dirTop), "Results")  # The default results directory.
+dirResults = os.path.join(dirTop, "Results")  # The default results directory.
 dirDefaultOutput = os.path.join(dirResults,
                                 "ConceptDiscovery_{0:s}".format(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
 dirOutput = args.output if args.output else dirDefaultOutput
@@ -109,19 +110,20 @@ if PYVERSION == 2:
 readParams.close()
 
 # Check that the file containing the mapping from codes to descriptions is present.
-if "CodeDescriptionFile" not in parsedArgs:
-    errorsFound.append("There must be a parameter field called CodeDescriptionFile.")
-elif not os.path.isfile(parsedArgs["CodeDescriptionFile"]):
-    errorsFound.append("The file of code to description mappings does not exist.")
+fileCodeDescriptions = parsedArgs.get("CodeDescriptionFile", None)
+if not fileCodeDescriptions:
+    fileCodeDescriptions = os.path.join(dirTop, "Data", "Coding.tsv")
+    if not os.path.isfile(fileCodeDescriptions):
+        errorsFound.append("No config file was provided and the code description file is not in the default location "
+                           "\"{0:s}\".".format(fileCodeDescriptions))
+elif not os.path.isfile(fileCodeDescriptions):
+    errorsFound.append("The file of code to description mappings in the configuration file does not exist.")
 
 # Print error messages.
 if errorsFound:
     print("\n\nThe following errors were encountered while parsing the input parameters:\n")
     print('\n'.join(errorsFound))
     sys.exit()
-
-# Extract parameters.
-fileCodeDescriptions = parsedArgs["CodeDescriptionFile"]
 
 #-----------------------------#
 # Perform the Code Extraction #
