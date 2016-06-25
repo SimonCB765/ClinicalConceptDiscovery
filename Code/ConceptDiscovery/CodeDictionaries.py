@@ -163,8 +163,93 @@ class CodeDictionary(object):
             # If no codes are supplied return the descriptions of all codes.
             return [self._codeHierarchy[i]["Description"] for i in self._codeHierarchy]
 
-    def get_parents(self, levelsToCheck=1):
-        pass
+    def get_parents(self, codes, relationships=None, levelsToIgnore=0, levelsToExtract=1):
+        """Extract the parents of a list of codes.
+
+        Restrictions can be placed on the extraction through the relationships, levels to ignore and levels to extract.
+        Relationships - Each edge has a label on it that determines what type of relationship the edge indicates
+                            (e.g. part of, is a, has a). The parent extraction can be restricted to extracting only
+                            parents of the supplied codes that have one of the supplied relationships.
+        Levels to ignore - This can be used to ignore a number of levels of parents above the supplied codes. For
+                               example, to ignore the immediate parents and start extracting at the grandparent level,
+                               set levels to ignore to 1.
+        Levels to extract - This can be used to extract a set number of levels of parents above the supplied codes. For
+                                example, to select the parents and grandparents set the levels to extract to 2 (and
+                                the levels to ignore to 0).
+
+        :param codes:           The codes to extract the parents for.
+        :type codes:            list
+        :param relationships:   The relationships that should be traversed when extracting children. To ignore
+                                    edge labels when extracting, set this value to a falsey value (e.g. None).
+                                    If you're restricting extraction to parents with only a certain set of edge labels,
+                                    but want to also extract all parents without an edge label, then include None in
+                                    the list of relationships.
+        :type relationships:    list
+        :param levelsToIgnore:  The number of levels below the current codes to ignore before extracting parents.
+        :type levelsToIgnore:   int
+        :param levelsToExtract: The number of levels of parents to extract.
+        :type levelsToExtract:  int
+        :return:                The extracted parent codes.
+        :rtype:                 list
+
+        """
+
+        if levelsToIgnore < 0:
+            # The levels to ignore must be at least 0.
+            raise ValueError("The levels to ignore must be at least 0.")
+        if levelsToExtract < 0:
+            # The levels to extract must be at least 0.
+            raise ValueError("The levels to extract must be at least 0.")
+
+        extractedParents = []  # The extracted parent codes.
+        currentCodes = codes  # The current set of codes having their parents extracted.
+
+        if relationships:
+            # We have some restrictions on the edge labels that we can traverse.
+
+            # Skip through the levels of parents that we're supposed to ignore.
+            while levelsToIgnore:
+                # Get the child codes of the codes at the current level.
+                nextLvlCodes = [j[0] for i in currentCodes for j in self._codeHierarchy.get(i, {}).get("Parents", [])
+                                if j[1] in relationships]
+
+                # Update the current codes and the number of levels that need ignoring.
+                currentCodes = nextLvlCodes
+                levelsToIgnore -= 1
+
+            # Start extracting parents as we've reached the correct level.
+            while levelsToExtract:
+                # Get the child codes of the codes at the current level.
+                nextLvlCodes = [j[0] for i in currentCodes for j in self._codeHierarchy.get(i, {}).get("Parents", [])
+                                if j[1] in relationships]
+
+                # Update the current codes, the extracted codes and the number of levels that still need extracting.
+                currentCodes = nextLvlCodes
+                extractedParents.extend(nextLvlCodes)  # Extract the parent codes of the current codes.
+                levelsToExtract -= 1
+        else:
+            # We have no restrictions on edge labels, and will extract all children regardless of the edge label.
+
+            # Skip through the levels of parents that we're supposed to ignore.
+            while levelsToIgnore:
+                # Get the child codes of the codes at the current level.
+                nextLvlCodes = [j[0] for i in currentCodes for j in self._codeHierarchy.get(i, {}).get("Parents", [])]
+
+                # Update the current codes and the number of levels that need ignoring.
+                currentCodes = nextLvlCodes
+                levelsToIgnore -= 1
+
+            # Start extracting parents as we've reached the correct level.
+            while levelsToExtract:
+                # Get the child codes of the codes at the current level.
+                nextLvlCodes = [j[0] for i in currentCodes for j in self._codeHierarchy.get(i, {}).get("Parents", [])]
+
+                # Update the current codes, the extracted codes and the number of levels that still need extracting.
+                currentCodes = nextLvlCodes
+                extractedParents.extend(nextLvlCodes)  # Extract the parent codes of the current codes.
+                levelsToExtract -= 1
+
+        return extractedParents
 
 
 class ReadDictionary(CodeDictionary):
