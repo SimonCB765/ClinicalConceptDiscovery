@@ -75,7 +75,7 @@ class ReadDictionary(CodeDictionary):
         """
 
         # Initialise the code hierarchy.
-        self.mapCodeToDescription = defaultdict(lambda: {"Parents": [], "Children": [], "Description": ""})
+        self._codeHierarchy = defaultdict(lambda: {"Parents": [], "Children": [], "Description": ""})
 
         if dictType == "readv2":
             # A Read v2 code hierarchy is being constructed.
@@ -84,12 +84,12 @@ class ReadDictionary(CodeDictionary):
                     line = line.strip()
                     chunks = line.split('\t')
                     code = chunks[0]
-                    self.mapCodeToDescription[code]["Description"] = chunks[1]
+                    self._codeHierarchy[code]["Description"] = chunks[1]
                     if len(code) > 1:
                         # If the code consists of at least 2 characters, then the code has a parent and is therefore the
                         # child of that parent.
-                        self.mapCodeToDescription[code]["Parents"] = [(code[:-1], None)]
-                        self.mapCodeToDescription[code[:-1]]["Children"].append((code, None))
+                        self._codeHierarchy[code]["Parents"] = [(code[:-1], None)]
+                        self._codeHierarchy[code[:-1]]["Children"].append((code, None))
 
 
 class SNOMEDDictionary(CodeDictionary):
