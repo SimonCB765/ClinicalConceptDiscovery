@@ -27,6 +27,8 @@ class CodeDictionary(object):
 
     """
 
+    _codeHierarchy = None  # The representation of the code hierarchy.
+
     def __new__(cls, fileCodeDescriptions, dictType="Readv2"):
         """Create a code dictionary.
 
@@ -54,8 +56,27 @@ class CodeDictionary(object):
     def get_children(self, levelsToCheck=1):
         pass
 
-    def get_descriptions(self):
-        pass
+    def get_descriptions(self, codes=None):
+        """Get the descriptions of a list of codes or of all codes in the hierarchy.
+
+        If codes is None, then all codes in the hierarchy will have their descriptions extracted, otherwise only
+        the descriptions for the provided codes will be extracted.
+
+        Any supplied code that is not in the hierarchy will be ignored.
+
+        :param codes:   The codes to extract the descriptions for.
+        :type codes:    list
+        :return:        The descriptions of the input codes.
+        :rtype:         list
+
+        """
+
+        if codes:
+            # If codes are supplied return their descriptions.
+            return [self._codeHierarchy[i]["Description"] for i in codes if i in self._codeHierarchy]
+        else:
+            # If no codes are supplied return the descriptions of all codes.
+            return [self._codeHierarchy[i]["Description"] for i in self._codeHierarchy]
 
     def get_parents(self, levelsToCheck=1):
         pass
