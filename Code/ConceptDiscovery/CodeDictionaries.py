@@ -29,13 +29,15 @@ class CodeDictionary(object):
 
     _codeHierarchy = None  # The representation of the code hierarchy.
 
-    def __new__(cls, fileCodeDescriptions, dictType="Readv2"):
+    def __new__(cls, fileCodeDescriptions, dictType="Readv2", delimiter='\t'):
         """Create a code dictionary.
 
-        :param dictType:                The type of code dictionary to create.
-        :type dictType:                 str
         :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
         :type fileCodeDescriptions:     str
+        :param dictType:                The type of code dictionary to create.
+        :type dictType:                 str
+        :param delimiter:               The delimiter between the code and its description in the file.
+        :type delimiter:                str
         :return:                        A CodeDictionary subclass determined by the dictType parameter.
         :rtype:                         CodeDictionary subclass
 
@@ -45,13 +47,13 @@ class CodeDictionary(object):
             # An attempt is being made to create a CodeDictionary, so determine which subclass to generate.
             if dictType.lower() == "readv2":
                 # Generate a ReadDictionary.
-                return super(CodeDictionary, cls).__new__(ReadDictionary)
+                return super(CodeDictionary, cls).__new__(_ReadDictionary)
             elif dictType.lower() == "snomed":
                 # Generate a SNOMEDDictionary.
-                return super(CodeDictionary, cls).__new__(SNOMEDDictionary)
+                return super(CodeDictionary, cls).__new__(_SNOMEDDictionary)
         else:
             # An attempt is being made to create a CodeDictionary subclass, so create the subclass.
-            return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions, dictType)
+            return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions, dictType, delimiter)
 
     def _get_relatives(self, codes, direction, relationships=None, levelsToIgnore=0, levelsToExtract=1):
         """Extract the relatives of a list of codes.
@@ -208,16 +210,21 @@ class CodeDictionary(object):
         return self._get_relatives(codes, "Parents", relationships, levelsToIgnore, levelsToExtract)
 
 
-class ReadDictionary(CodeDictionary):
+class _ReadDictionary(CodeDictionary):
     """Create a Read code dictionary."""
 
-    def __init__(self, fileCodeDescriptions, dictType):
+    def __init__(self, fileCodeDescriptions, dictType, delimiter='\t'):
         """Initialise the Read code dictionary.
 
-        :param dictType:                The type of code dictionary to create.
-        :type dictType:                 str
+        The file containing the code descriptions is assumed to contain one code and description per line, with the
+        code coming first, followed by the delimiter and then the description.
+
         :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
         :type fileCodeDescriptions:     str
+        :param dictType:                The type of code dictionary to create.
+        :type dictType:                 str
+        :param delimiter:               The delimiter between the code and its description in the file.
+        :type delimiter:                str
 
         """
 
@@ -229,7 +236,7 @@ class ReadDictionary(CodeDictionary):
             with open(fileCodeDescriptions, 'r') as fidCodeDescriptions:
                 for line in fidCodeDescriptions:
                     line = line.strip()
-                    chunks = line.split('\t')
+                    chunks = line.split(delimiter)
                     code = chunks[0]
                     self._codeHierarchy[code]["Description"] = chunks[1]
                     if len(code) > 1:
@@ -239,16 +246,18 @@ class ReadDictionary(CodeDictionary):
                         self._codeHierarchy[code[:-1]]["Children"].append((code, None))
 
 
-class SNOMEDDictionary(CodeDictionary):
+class _SNOMEDDictionary(CodeDictionary):
     """Create a SNOMED code dictionary."""
 
-    def __init__(self, fileCodeDescriptions, dictType):
+    def __init__(self, fileCodeDescriptions, dictType, delimiter='\t'):
         """Initialise the SNOMED code dictionary.
 
-        :param dictType:                The type of code dictionary to create.
-        :type dictType:                 str
         :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
         :type fileCodeDescriptions:     str
+        :param dictType:                The type of code dictionary to create.
+        :type dictType:                 str
+        :param delimiter:               The delimiter between the code and its description in the file.
+        :type delimiter:                str
 
         """
 
