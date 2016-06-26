@@ -231,7 +231,7 @@ class _ReadDictionary(CodeDictionary):
         """
 
         # Initialise the code hierarchy.
-        self._codeHierarchy = defaultdict(lambda: {"Parents": [], "Children": [], "Description": ""})
+        self._codeHierarchy = defaultdict(lambda: {"Parents": [], "Children": [], "Description": "", "Searchable": ""})
 
         # Initialise the word dictionary.
         self._wordDict = defaultdict(set)
@@ -247,6 +247,7 @@ class _ReadDictionary(CodeDictionary):
                     chunks = line.split(delimiter)
                     code = chunks[0]
                     self._codeHierarchy[code]["Description"] = chunks[1]
+                    self._codeHierarchy[code]["Searchable"] = chunks[1].lower()
                     if len(code) > 1:
                         # If the code consists of at least 2 characters, then the code has a parent and is therefore the
                         # child of that parent.
