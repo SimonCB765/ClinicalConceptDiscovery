@@ -2,6 +2,7 @@
 
 # Python imports.
 from collections import defaultdict
+import re
 
 
 class CodeDictionary(object):
@@ -28,6 +29,7 @@ class CodeDictionary(object):
     """
 
     _codeHierarchy = None  # The representation of the code hierarchy.
+    _wordDict = None  # The word dictionary used to search for words in the descriptions.
 
     def __new__(cls, fileCodeDescriptions, dictType="Readv2", delimiter='\t'):
         """Create a code dictionary.
@@ -231,6 +233,12 @@ class _ReadDictionary(CodeDictionary):
         # Initialise the code hierarchy.
         self._codeHierarchy = defaultdict(lambda: {"Parents": [], "Children": [], "Description": ""})
 
+        # Initialise the word dictionary.
+        self._wordDict = defaultdict(set)
+
+        # Compile the word splitting regular expression.
+        wordFinder = re.compile("\s+")
+
         if dictType == "readv2":
             # A Read v2 code hierarchy is being constructed.
             with open(fileCodeDescriptions, 'r') as fidCodeDescriptions:
@@ -244,6 +252,13 @@ class _ReadDictionary(CodeDictionary):
                         # child of that parent.
                         self._codeHierarchy[code]["Parents"] = [(code[:-1], None)]
                         self._codeHierarchy[code[:-1]]["Children"].append((code, None))
+
+                    # Split the description into words.
+                    words = wordFinder.split(chunks[1])
+
+                    # Update the word dictionary.
+                    for i in words:
+                        self._wordDict[i].add(code)
 
 
 class _SNOMEDDictionary(CodeDictionary):
