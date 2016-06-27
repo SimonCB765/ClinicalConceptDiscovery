@@ -8,7 +8,7 @@ import os
 import sys
 
 # User imports.
-from . import CodeDictionaries
+from . import CodeDictionary
 from Utilities import json_to_ascii
 
 # Globals.
@@ -128,4 +128,4 @@ if errorsFound:
 #-----------------------------#
 # Perform the Code Extraction #
 #-----------------------------#
-codeDictionary = CodeDictionaries.CodeDictionary(fileCodeDescriptions, dictType=args.dictionary)
+codeDictionary = CodeDictionary.CodeDictionary(fileCodeDescriptions, dictType=args.dictionary)
