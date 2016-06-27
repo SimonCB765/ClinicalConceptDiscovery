@@ -29,7 +29,7 @@ class CodeDictionary(object):
     """
 
     _codeHierarchy = None  # The representation of the code hierarchy.
-    _wordDict = None  # The word dictionary used to search for words in the descriptions.
+    _wordDict = None  # The dictionary that maps a word to the codes where the word appears in the description.
 
     def __new__(cls, fileCodeDescriptions, dictType="readv2", delimiter='\t'):
         """Create a code dictionary.
