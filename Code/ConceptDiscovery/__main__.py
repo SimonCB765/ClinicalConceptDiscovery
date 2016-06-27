@@ -4,16 +4,19 @@
 import argparse
 import datetime
 import json
+import logging
 import os
 import sys
 
 # User imports.
 from . import CodeDictionary
+from . import ConceptDefinitions
 from Utilities import json_to_ascii
 
 # Globals.
 PYVERSION = sys.version_info[0]  # Determine major version number.
-VALIDDICTS = ["readv2", "snomed"]  # The valid dictionary types accepted
+VALIDCONCEPTSRC = ["flatfile", "json"]  # The valid concept source file types.
+VALIDDICTS = ["readv2", "snomed"]  # The valid code dictionary types accepted
 
 
 #------------------------#
@@ -31,12 +34,17 @@ parser.add_argument("-c", "--config", help="The location of the configuration fi
 parser.add_argument("-d", "--dictionary",
                     choices=VALIDDICTS,
                     default=VALIDDICTS[0],
-                    help="The dictionary being used to construct the code hierarchy",
+                    help="The type of dictionary being used to construct the code hierarchy",
                     type=str.lower)
 parser.add_argument("-o", "--output",
                     help="The location of the directory to write the output files to. Default: a timestamped "
                          "subdirectory in the Results directory.",
                     type=str)
+parser.add_argument("-s", "--conceptSrc",
+                    choices=VALIDCONCEPTSRC,
+                    default=VALIDCONCEPTSRC[0],
+                    help="The type of input file that contains the concept definitions.",
+                    type=str.lower)
 parser.add_argument("-w", "--overwrite",
                     action="store_true",
                     help="Whether the output directory should be overwritten if it exists. Default: do not overwrite.")
@@ -97,6 +105,31 @@ except Exception as e:
     print("The output directory could not be created - {0:s}".format(str(e)))
     sys.exit()
 
+#------------------#
+# Setup the Logger #
+#------------------#
+# Create the logger.
+logger = logging.getLogger("ConceptDiscovery")
+logger.setLevel(logging.DEBUG)
+
+# Create the logger file handler.
+fileLog = os.path.join(dirOutput, "ConceptDiscovery.log")
+logFileHandler = logging.FileHandler(fileLog)
+logFileHandler.setLevel(logging.DEBUG)
+
+# Create a console handler for higher level logging.
+logConsoleHandler = logging.StreamHandler()
+logConsoleHandler.setLevel(logging.ERROR)
+
+# Create formatter and add it to the handlers.
+formatter = logging.Formatter("%(name)s\t%(levelname)s\t%(message)s")
+logFileHandler.setFormatter(formatter)
+logConsoleHandler.setFormatter(formatter)
+
+# Add the handlers to the logger.
+logger.addHandler(logFileHandler)
+logger.addHandler(logConsoleHandler)
+
 #---------------------------------------------#
 # Parse and Validate Configuration Parameters #
 #---------------------------------------------#
@@ -128,4 +161,8 @@ if errorsFound:
 #-----------------------------#
 # Perform the Code Extraction #
 #-----------------------------#
+logger.info("Creating the code dictionary.")
 codeDictionary = CodeDictionary.CodeDictionary(fileCodeDescriptions, dictType=args.dictionary)
+
+logger.info("Setting up the concept definitions.")
+conceptDefinitions = ConceptDefinitions.ConceptDefinition(fileInput, conceptSource=args.conceptSrc)
