@@ -31,7 +31,7 @@ class CodeDictionary(object):
     _codeHierarchy = None  # The representation of the code hierarchy.
     _wordDict = None  # The word dictionary used to search for words in the descriptions.
 
-    def __new__(cls, fileCodeDescriptions, dictType="Readv2", delimiter='\t'):
+    def __new__(cls, fileCodeDescriptions, dictType="readv2", delimiter='\t'):
         """Create a code dictionary.
 
         :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
@@ -48,10 +48,10 @@ class CodeDictionary(object):
         if cls is CodeDictionary:
             # An attempt is being made to create a CodeDictionary, so determine which subclass to generate.
             if dictType.lower() == "readv2":
-                # Generate a ReadDictionary.
+                # Generate a _ReadDictionary.
                 return super(CodeDictionary, cls).__new__(_ReadDictionary)
             elif dictType.lower() == "snomed":
-                # Generate a SNOMEDDictionary.
+                # Generate a _SNOMEDDictionary.
                 return super(CodeDictionary, cls).__new__(_SNOMEDDictionary)
         else:
             # An attempt is being made to create a CodeDictionary subclass, so create the subclass.
