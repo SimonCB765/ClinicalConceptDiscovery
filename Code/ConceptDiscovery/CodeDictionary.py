@@ -57,72 +57,6 @@ class CodeDictionary(object):
             # An attempt is being made to create a CodeDictionary subclass, so create the subclass.
             return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions, dictType, delimiter)
 
-    def _get_relatives(self, codes, direction, relationships=None, levelsToIgnore=0, levelsToExtract=1):
-        """Extract the relatives of a list of codes.
-
-        Restrictions can be placed on the extraction through the relationships, levels to ignore and levels to extract.
-        Relationships - Each edge has a label on it that determines what type of relationship the edge indicates
-                            (e.g. part of, is a, has a). The extraction can be restricted to extracting only
-                            relatives of the supplied codes that have one of the supplied relationships.
-        Levels to ignore - This can be used to ignore a number of levels of relatives above/below the supplied codes.
-                               For example, to ignore immediate relatives (parents/children) and start extracting at
-                               the second generation of relatives (grandparent/grandchild), set levels to ignore to 1.
-        Levels to extract - This can be used to extract a set number of levels of relatives above/below the supplied
-                                codes. For example, to select the immediate relatives (parents/children) and the next
-                                generation of relatives (grandparents/grandchildren), set the levels to extract to 2
-                                (and the levels to ignore to 0).
-
-        :param codes:           The codes to extract the relatives for.
-        :type codes:            list
-        :param direction:       Whether children or parents should be extracted. Must be one of "Children" or "Parents".
-        :type direction:        str
-        :param relationships:   The relationships that should be traversed when extracting relatives. To ignore
-                                    edge labels when extracting, set this value to a falsey value (e.g. None).
-                                    If you're restricting extraction to relatives with only a certain set of edge
-                                    labels, but want to also extract all relatives without an edge label, then include
-                                    None in the list of relationships.
-        :type relationships:    list
-        :param levelsToIgnore:  The number of levels above/below the codes to ignore before extracting relatives.
-        :type levelsToIgnore:   int
-        :param levelsToExtract: The number of levels of relatives to extract.
-        :type levelsToExtract:  int
-        :return:                The extracted relatives' codes.
-        :rtype:                 list
-
-        """
-
-        if direction not in ["Parents", "Children"]:
-            # The direction must be one of "Parents" or "Children".
-            raise ValueError("The direction must be one of \"Parents\" or \"Children\".")
-        if levelsToIgnore < 0:
-            # The levels to ignore must be at least 0.
-            raise ValueError("The levels to ignore must be at least 0.")
-        if levelsToExtract < 0:
-            # The levels to extract must be at least 0.
-            raise ValueError("The levels to extract must be at least 0.")
-
-        extractedRelatives = []  # The extracted relatives' codes.
-        currentCodes = codes  # The current set of codes having their relatives extracted.
-
-        while levelsToIgnore or levelsToExtract:
-            # Get the codes for the relatives of the codes at the current level (respecting potential edge
-            # label restrictions).
-            relativeCodes = [j[0] for i in currentCodes for j in self._codeHierarchy.get(i, {}).get(direction, [])
-                             if (not relationships) or (j[1] in relationships)]
-
-            # The relatives' codes are the codes that need checking next.
-            currentCodes = relativeCodes
-
-            if levelsToIgnore:
-                # There are still levels of codes that need ignoring, therefore don't extract the relatives' codes.
-                levelsToIgnore -= 1
-            else:
-                # There are not levels of codes that need ignoring, therefore extract the relatives' codes.
-                extractedRelatives.extend(relativeCodes)
-                levelsToExtract -= 1
-
-        return extractedRelatives
-
     def get_children(self, codes, relationships=None, levelsToIgnore=0, levelsToExtract=1):
         """Extract the children of a list of codes.
 
@@ -210,6 +144,72 @@ class CodeDictionary(object):
         """
 
         return self._get_relatives(codes, "Parents", relationships, levelsToIgnore, levelsToExtract)
+
+    def _get_relatives(self, codes, direction, relationships=None, levelsToIgnore=0, levelsToExtract=1):
+        """Extract the relatives of a list of codes.
+
+        Restrictions can be placed on the extraction through the relationships, levels to ignore and levels to extract.
+        Relationships - Each edge has a label on it that determines what type of relationship the edge indicates
+                            (e.g. part of, is a, has a). The extraction can be restricted to extracting only
+                            relatives of the supplied codes that have one of the supplied relationships.
+        Levels to ignore - This can be used to ignore a number of levels of relatives above/below the supplied codes.
+                               For example, to ignore immediate relatives (parents/children) and start extracting at
+                               the second generation of relatives (grandparent/grandchild), set levels to ignore to 1.
+        Levels to extract - This can be used to extract a set number of levels of relatives above/below the supplied
+                                codes. For example, to select the immediate relatives (parents/children) and the next
+                                generation of relatives (grandparents/grandchildren), set the levels to extract to 2
+                                (and the levels to ignore to 0).
+
+        :param codes:           The codes to extract the relatives for.
+        :type codes:            list
+        :param direction:       Whether children or parents should be extracted. Must be one of "Children" or "Parents".
+        :type direction:        str
+        :param relationships:   The relationships that should be traversed when extracting relatives. To ignore
+                                    edge labels when extracting, set this value to a falsey value (e.g. None).
+                                    If you're restricting extraction to relatives with only a certain set of edge
+                                    labels, but want to also extract all relatives without an edge label, then include
+                                    None in the list of relationships.
+        :type relationships:    list
+        :param levelsToIgnore:  The number of levels above/below the codes to ignore before extracting relatives.
+        :type levelsToIgnore:   int
+        :param levelsToExtract: The number of levels of relatives to extract.
+        :type levelsToExtract:  int
+        :return:                The extracted relatives' codes.
+        :rtype:                 list
+
+        """
+
+        if direction not in ["Parents", "Children"]:
+            # The direction must be one of "Parents" or "Children".
+            raise ValueError("The direction must be one of \"Parents\" or \"Children\".")
+        if levelsToIgnore < 0:
+            # The levels to ignore must be at least 0.
+            raise ValueError("The levels to ignore must be at least 0.")
+        if levelsToExtract < 0:
+            # The levels to extract must be at least 0.
+            raise ValueError("The levels to extract must be at least 0.")
+
+        extractedRelatives = []  # The extracted relatives' codes.
+        currentCodes = codes  # The current set of codes having their relatives extracted.
+
+        while levelsToIgnore or levelsToExtract:
+            # Get the codes for the relatives of the codes at the current level (respecting potential edge
+            # label restrictions).
+            relativeCodes = [j[0] for i in currentCodes for j in self._codeHierarchy.get(i, {}).get(direction, [])
+                             if (not relationships) or (j[1] in relationships)]
+
+            # The relatives' codes are the codes that need checking next.
+            currentCodes = relativeCodes
+
+            if levelsToIgnore:
+                # There are still levels of codes that need ignoring, therefore don't extract the relatives' codes.
+                levelsToIgnore -= 1
+            else:
+                # There are not levels of codes that need ignoring, therefore extract the relatives' codes.
+                extractedRelatives.extend(relativeCodes)
+                levelsToExtract -= 1
+
+        return extractedRelatives
 
 
 class _ReadDictionary(CodeDictionary):
