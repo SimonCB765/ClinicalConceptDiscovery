@@ -91,19 +91,30 @@ class CodeDictionary(object):
         return self._get_relatives(codes, "Children", relationships, levelsToIgnore, levelsToExtract)
 
     def get_codes_from_words(self, words):
-        """Get the codes that have a description containing all the supplied words.
+        """Get codes based on bags of words.
 
-        :param words:   The words to find the codes for. Each word is assumed to be a string.
-        :type words:    set
-        :return:        The codes with descriptions that contain all the words.
-        :rtype:         set
+        Each entry in words should contain a list of words, all of which must be present in a code's description
+        before the code will be returned.
+
+        :param words:   The words to find codes for. Each entry should contain a list of words, all of which must be
+                            present in a code's description before the code is deemed to be a match. Each word is
+                            assumed to be a string.
+        :type words:    tuple of list
+        :return:        Sets of codes with descriptions matching the bags of words. Element i of the return value will
+                            contain the codes that have descriptions with all the words contained in words[i].
+        :rtype:         list of sets
 
         """
 
-        codes = set()
+        returnValue = []
         for i in words:
-            codes &= self._wordDict.get(i, set())
-        return codes
+            # If the bag of words i is empty, then just return an empty set for it. If the bag contains words, then
+            # make a copy of the codes with the first word and iterate through the remaining words.
+            codes = set(self._wordDict.get(i[0], set())) if i else set()
+            for j in i[1:]:
+                codes &= self._wordDict.get(j, set())
+            returnValue.append(codes)
+        return returnValue
 
     def get_descriptions(self, codes=None):
         """Get the descriptions of a list of codes or of all codes in the hierarchy.
