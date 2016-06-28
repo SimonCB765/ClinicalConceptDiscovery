@@ -102,7 +102,7 @@ class CodeDictionary(object):
 
         codes = set()
         for i in words:
-            codes &= self._wordDict.get(i, None)
+            codes &= self._wordDict.get(i, set())
         return codes
 
     def get_descriptions(self, codes=None):
