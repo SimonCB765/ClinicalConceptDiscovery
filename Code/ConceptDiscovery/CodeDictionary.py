@@ -94,14 +94,14 @@ class CodeDictionary(object):
         """Get codes based on bags of words.
 
         Each entry in words should contain a list of words, all of which must be present in a code's description
-        before the code will be returned.
+        before the code will be returned for that entry.
 
         :param words:   The words to find codes for. Each entry should contain a list of words, all of which must be
                             present in a code's description before the code is deemed to be a match. Each word is
                             assumed to be a string.
-        :type words:    tuple of list
-        :return:        Sets of codes with descriptions matching the bags of words. Element i of the return value will
-                            contain the codes that have descriptions with all the words contained in words[i].
+        :type words:    tuple of lists
+        :return:        Sets of codes. Element i of the return value will contain the codes that have descriptions
+                            with all the words contained in words[i].
         :rtype:         list of sets
 
         """
@@ -116,6 +116,38 @@ class CodeDictionary(object):
                 # For each word, restrict the set of codes returned to those containing that word in their description.
                 codes &= self._wordDict.get(j, set())
             returnValue.append(codes)
+        return returnValue
+
+    def get_codes_from_regexp(self, regexps):
+        """Get the codes that have a description where all the supplied regular expressions match.
+
+        Each entry in regexps should contain a set of regular expression strings, all of which must be found in a given
+        code's description before the code will be returned for that entry.
+
+        :param regexps: Sets of regular expressions. Each entry should contain a set of regular expressions, all of
+                            which must be found in a code's description before the code is deemed a match. Each regular
+                            expression is assumed to be a string.
+        :type regexps:  list of sets
+        :return:        Sets of codes. Element i of the return value will contain the codes that have descriptions
+                            containing all regular expressions in regexps[i].
+        :rtype:         list of sets
+
+        """
+
+        # Compile all regular expressions.
+        regexps = [{re.compile(j) for j in i} for i in regexps]
+        print(regexps)
+
+        returnValue = [set() for i in regexps]
+        for i in self._codeHierarchy:
+            # Iterate through all the codes in the hierarchy, checking the description of each one against the sets
+            # of regular expressions.
+            codeDescription = self._codeHierarchy[i]["Description"]  # The description of the code.
+            for index, j in enumerate(regexps):
+                # Iterate through the sets of regular expressions and check whether all of them in a given set can be
+                # found in the code's description.
+                if j and all([k.search(codeDescription) for k in j]):
+                    returnValue[index].add(i)
         return returnValue
 
     def get_descriptions(self, codes=None):
