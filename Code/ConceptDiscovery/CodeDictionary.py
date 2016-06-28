@@ -106,12 +106,14 @@ class CodeDictionary(object):
 
         """
 
+        # Go through each bag of words and select only the codes that contain all words in the bag in their description.
         returnValue = []
         for i in words:
             # If the bag of words i is empty, then just return an empty set for it. If the bag contains words, then
             # make a copy of the codes with the first word and iterate through the remaining words.
             codes = set(self._wordDict.get(i[0], set())) if i else set()
             for j in i[1:]:
+                # For each word, restrict the set of codes returned to those containing that word in their description.
                 codes &= self._wordDict.get(j, set())
             returnValue.append(codes)
         return returnValue
