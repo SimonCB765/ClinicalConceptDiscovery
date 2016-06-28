@@ -14,12 +14,12 @@ class ConceptDefinition(object):
 
     The concept definitions are represented in a dictionary with the following format:
     {
-        "Concept1": "Negative": [{"Raw": '"family history"', "Quoted": {"family history"}, "BOW": set()}]
+        "Concept1": "Negative": [{"Raw": '"family history"', "Quoted": {'family history'}, "BOW": set()}]
                     "Positive": [{"Raw": 'blood pressure', "Quoted": set(), "BOW": {'blood', 'pressure'}},
-                                 {"Raw": '"type 2" diabetes', "Quoted": {'"type 2"'}, "BOW": {'diabetes'}}
+                                 {"Raw": '"type 2" diabetes', "Quoted": {'type 2'}, "BOW": {'diabetes'}}
                                 ]
-        "Concept2": "Negative": [{"Raw": 'kidney "in clinic"', "Quoted": {'"in clinic"', "BOW": {'kidney'}}]
-                    "Positive": [{"Raw": '"chronic kidney"', "Quoted": {'"chronic kidney"'}, "BOW": set()},
+        "Concept2": "Negative": [{"Raw": 'kidney "in clinic"', "Quoted": {'in clinic', "BOW": {'kidney'}}]
+                    "Positive": [{"Raw": '"chronic kidney"', "Quoted": {'chronic kidney'}, "BOW": set()},
                                  {"Raw": 'kidney', "Quoted": set(), "BOW": {'kidney'}}
                                 ]
         ...
@@ -102,6 +102,7 @@ class _FlatFileDefinitions(ConceptDefinition):
                     rawTerm = line.strip()
                     line = re.sub("\s+", ' ', rawTerm)  # Turn consecutive whitespace into a single space.
                     quotedTerms = re.findall('".*?"', line)  # Find all quoted terms on the line.
+                    quotedTerms = [i[1:-1] for i in quotedTerms]  # Strip the quotation marks off.
                     line = re.sub('".*?"', '', line)  # Remove all quoted terms.
                     bagOfWordsTerms = []  # Initialise the bag of words to empty.
                     if line:
