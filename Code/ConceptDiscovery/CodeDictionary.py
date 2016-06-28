@@ -136,12 +136,11 @@ class CodeDictionary(object):
 
         # Compile all regular expressions.
         regexps = [{re.compile(j) for j in i} for i in regexps]
-        print(regexps)
 
+        # Iterate through all the codes in the hierarchy, checking the description of each one against the sets
+        # of regular expressions.
         returnValue = [set() for i in regexps]
         for i in self._codeHierarchy:
-            # Iterate through all the codes in the hierarchy, checking the description of each one against the sets
-            # of regular expressions.
             codeDescription = self._codeHierarchy[i]["Description"]  # The description of the code.
             for index, j in enumerate(regexps):
                 # Iterate through the sets of regular expressions and check whether all of them in a given set can be
