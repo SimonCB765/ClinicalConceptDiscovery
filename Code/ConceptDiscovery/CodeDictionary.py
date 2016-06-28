@@ -135,7 +135,7 @@ class CodeDictionary(object):
         """
 
         # Compile all regular expressions.
-        regexps = [{re.compile(j) for j in i} for i in regexps]
+        regexps = [{re.compile(j, re.IGNORECASE) for j in i} for i in regexps]
 
         # Iterate through all the codes in the hierarchy, checking the description of each one against the sets
         # of regular expressions.
