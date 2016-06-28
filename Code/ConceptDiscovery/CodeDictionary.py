@@ -90,6 +90,21 @@ class CodeDictionary(object):
 
         return self._get_relatives(codes, "Children", relationships, levelsToIgnore, levelsToExtract)
 
+    def get_codes_from_words(self, words):
+        """Get the codes that have a description containing all the supplied words.
+
+        :param words:   The words to find the codes for. Each word is assumed to be a string.
+        :type words:    set
+        :return:        The codes with descriptions that contain all the words.
+        :rtype:         set
+
+        """
+
+        codes = set()
+        for i in words:
+            codes &= self._wordDict.get(i, None)
+        return codes
+
     def get_descriptions(self, codes=None):
         """Get the descriptions of a list of codes or of all codes in the hierarchy.
 
