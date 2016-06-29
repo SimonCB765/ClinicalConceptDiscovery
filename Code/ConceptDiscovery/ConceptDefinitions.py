@@ -74,8 +74,7 @@ class _FlatFileDefinitions(ConceptDefinition):
 
         """
 
-        self._conceptDefinitions = defaultdict(lambda: {"Positive": [{"Raw": "", "Quoted": set(), "BOW": set()}],
-                                                        "Negative": [{"Raw": "", "Quoted": set(), "BOW": set()}]})
+        self._conceptDefinitions = defaultdict(lambda: {"Positive": [], "Negative": []})
 
         currentConcept = None  # The current concept having its terms extracted.
         currentTermType = "Positive"  # Whether the current terms being extracted are positive or negative terms.
