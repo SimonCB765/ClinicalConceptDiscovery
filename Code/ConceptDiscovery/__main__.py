@@ -161,8 +161,16 @@ if errorsFound:
 #-----------------------------#
 # Perform the Code Extraction #
 #-----------------------------#
+import datetime
+
+start = datetime.datetime.now()
 logger.info("Creating the code dictionary.")
 codeDictionary = CodeDictionary.CodeDictionary(fileCodeDescriptions, dictType=args.dictionary)
+print(datetime.datetime.now() - start)
 
+start = datetime.datetime.now()
 logger.info("Setting up the concept definitions.")
 conceptDefinitions = ConceptDefinitions.ConceptDefinition(fileInput, conceptSource=args.conceptSrc)
+print(datetime.datetime.now() - start)
+conceptDefinitions.identify_codes(codeDictionary, dirOutput)
+print(datetime.datetime.now() - start)

@@ -1,3 +1,24 @@
+If a concept has some definition like
+# RENAL
+## POSITIVE
+"chronic kidney disease"
+renal
+kidney
+"glomerular filtration rate"
+## NEGATIVE
+"type 1" diabetes "type 2" diabs
+
+then you can combine the quoted phrases that have no non-quoted words on their line (e.g. CKD and GFR here)
+    (chronic kidney disease|glomerular filtration rate)
+for a term with multiple quoted phrases you can combine its phrases to ensure all are in the description like:
+    ^(?=.*type 1)(.*type 2)
+
+
+
+constrain returned codes based on a code regex (so biomed measurements only come from chapter 4....)
+    Could constrain negatively and positively based on the code hierarchy
+
+
 positive and negative terms
 	bag of words
 	exact phrases
