@@ -35,6 +35,7 @@ class ConceptDefinition(object):
 
     """
 
+    _concepts = None  # The concepts recorded in the order that they appear in the concept definition file.
     _conceptDefinitions = None  # The dictionary of concepts.
 
     def __new__(cls, fileConceptDefinitions, conceptSource="FlatFile", delimiter='\t'):
@@ -70,8 +71,13 @@ class _FlatFileDefinitions(ConceptDefinition):
     def __init__(self, fileConceptDefinitions, conceptSource=None, delimiter=None):
         """Initialise the set of concept definitions from a flat file input source.
 
-        Terms for a concept can be specified as negative or positive terms. If there is not header for a set of terms
+        Terms for a concept can be specified as negative or positive terms. If there is no header for a set of terms
         (i.e. it is not specified whether they are negative or positive), then the terms are assumed to be positive.
+
+        The post processing will combine any terms that consist of solely quoted phrases (e.g. "type 1",
+        "chronic kidney disease", "blood pressure") into one regular expression
+        (e.g. (type 1|chronic kidney disease|blood pressure)). This will match any code description that contains
+        one or more of these words.
 
         :param fileConceptDefinitions:  The location of the file containing the concept definitions.
         :type fileConceptDefinitions:   str
@@ -82,6 +88,9 @@ class _FlatFileDefinitions(ConceptDefinition):
 
         """
 
+        self._concepts = []  # The concepts recorded in the order that they appear in the concept definition file.
+
+        # Define the dictionary to hold the processed concept definitions.
         self._conceptDefinitions = defaultdict(lambda: {"Positive": {"Raw": [], "Processed": []},
                                                         "Negative": {"Raw": [], "Processed": []}})
 
@@ -102,6 +111,9 @@ class _FlatFileDefinitions(ConceptDefinition):
                 elif line[0] == '#':
                     # Found the start of a new term.
                     currentConcept = re.sub("\s+", '_', line[1:].strip())  # Update the current concept.
+                    if currentConcept not in self._concepts:
+                        # If the current concept is not in the list of concepts, then add it.
+                        self._concepts.append(currentConcept)
                     currentTermType = "Positive"  # Reset the default term type back to positive.
                 elif line.strip() == '':
                     # The line has no content on it.
