@@ -130,7 +130,7 @@ class ConceptDefinition(object):
                 fidAllCodes.write("## POSITIVE\n")
                 fidAllCodes.write('\n'.join(
                     ["{0:s}\t{1:s}".format(posCodes[i], posDescriptions[i]) for i in range(len(posCodes))]))
-                fidAllCodes.write("## NEGATIVE\n")
+                fidAllCodes.write("\n## NEGATIVE\n")
                 fidAllCodes.write('\n'.join(
                     ["{0:s}\t{1:s}".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
 
