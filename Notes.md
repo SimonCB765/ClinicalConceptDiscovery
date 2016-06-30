@@ -1,3 +1,12 @@
+constrain returned codes based on a code regex (so biomed measurements only come from chapter 4....)
+    Could constrain negatively and positively based on the code hierarchy
+
+
+python 3 is necessary due to the exists_ok keyword in the os.makedirs
+
+
+if the same concept is defined multiple times the terms will just keep being added to the record of the concept
+
 positive and negative terms
 	bag of words
 	exact phrases
