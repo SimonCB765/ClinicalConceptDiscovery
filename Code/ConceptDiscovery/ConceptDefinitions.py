@@ -112,6 +112,38 @@ class _FlatFileDefinitions(ConceptDefinition):
 
                     self._conceptDefinitions[currentConcept][currentTermType].append(termDefinition)
 
+        # Post process the concept definitions to simplify cases where there are terms that are only a single
+        # quoted phrase.
+        # Also add a blank term if a concept has no terms of one type (positive or negative).
+        for i in self._conceptDefinitions:
+            print(i)
+            for j in self._conceptDefinitions[i]:
+                if not self._conceptDefinitions[i][j]:
+                    # No terms are present for this term type, so add a blank term to ensure each term type has
+                    # a term present.
+                    self._conceptDefinitions[i][j].append({"Raw": "", "Quoted": set(), "BOW": set()})
+                else:
+                    # Determine whether there are any terms consisting of only a single quoted term.
+                    combinationTerms = []  # Terms involving unquoted words or multiple separate quoted phrases.
+                    singleQuotedTerms = set()  # Terms containing only a single quoted phrase and nothing else.
+                    for k in self._conceptDefinitions[i][j]:
+                        if not k["BOW"]:
+                            # Term only contains a single quoted phrase.
+                            singleQuotedTerms |= (k["Quoted"])
+                        else:
+                            # Term contains some combination of unquoted words and/or multiple quoted phrases.
+                            combinationTerms.append(k)
+
+                    # Combine all single quoted terms into one regular expression. For example, if the concept has
+                    # terms like: "type 1", "chronic kidney disease" and "blood pressure", then these will be combined
+                    # into the regular expression (type 1|chronic kidney disease|blood pressure). This works as a code
+                    # belongs to the concept if the description contains any of these phrases.
+                    singleQuotedTerms = "({0:s})".format("|".join(singleQuotedTerms))
+                    combinationTerms.append({"Quoted": {singleQuotedTerms}, "BOW": set()})  # No bag of words needed.
+
+                    # Update the record of the terms for this concept.
+                    self._conceptDefinitions[i][j] = combinationTerms
+
 
 class _JSONDefinitions(ConceptDefinition):
     pass
