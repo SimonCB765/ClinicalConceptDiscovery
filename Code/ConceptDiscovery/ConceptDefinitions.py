@@ -3,6 +3,7 @@
 # Python imports.
 from collections import defaultdict
 import logging
+import os
 import re
 
 # Globals.
@@ -63,6 +64,81 @@ class ConceptDefinition(object):
         else:
             # An attempt is being made to create a ConceptDefinition subclass, so create the subclass.
             return super(ConceptDefinition, cls).__new__(cls, fileConceptDefinitions, conceptSource, delimiter)
+
+    def identify_codes(self, codeDictionary, dirResults):
+        """Extract the codes for the given concepts based on the terms used to define them.
+
+        :param codeDictionary:  The code dictionary to use when searching for codes.
+        :type codeDictionary:   CodeDictionary
+        :param dirResults:      Location where the results of the code extraction should be saved.
+        :type dirResults:       str
+
+        """
+
+        conceptCodes = defaultdict(lambda: {"Positive": set(), "Negative": set()})
+        for i in self._conceptDefinitions:
+            # Go through each concept.
+            for j in self._conceptDefinitions[i]:
+                # Go through the negative and positive terms for the concept.
+                processedTerms = self._conceptDefinitions[i][j]["Processed"]
+                if processedTerms:
+                    # There are terms of this type so get the negative/positive words and quoted terms for the concept.
+                    words, quoted = zip(*[(list(k["BOW"]), k["Quoted"]) for k in processedTerms])
+
+                    # For each term, get the codes with descriptions that contain all the unquoted words.
+                    codesBOW = codeDictionary.get_codes_from_words(words)
+
+                    # For each term, get the codes with descriptions that contain all the quoted phrases.
+                    codesQuoted = codeDictionary.get_codes_from_regexp(quoted)
+
+                    # For each term, find codes returned by the bag of words and quoted phrase search.
+                    codes = set()
+                    for k in range(len(words)):
+                        if not words[k]:
+                            # There are no bag of words entries for this concept, so the codes for the concept
+                            # will be those found using the quoted phrases.
+                            codes |= codesQuoted[k]
+                        elif not quoted[k]:
+                            # There are no quoted phrase entries for this concept, but there are bag of word entries, so
+                            # the codes for the concept will be those found using the bag of words.
+                            codes |= codesBOW[k]
+                        else:
+                            # There are both bag of words and quoted phrase for this concept, so the codes for the
+                            # concept will be those codes found using both the bag of words and quoted phrases.
+                            codes |= (codesBOW[k] & codesQuoted[k])
+                    conceptCodes[i][j] = codes
+                else:
+                    # If there are no processed terms for this term type, then the concept has no term's of this type
+                    # (likely negative terms).
+                    conceptCodes[i][j] = set()
+
+        # Write out the concept codes and their descriptions.
+        fileAllCodes = os.path.join(dirResults, "AllConceptCodes.txt")
+        filePositiveCodes = os.path.join(dirResults, "PositiveConceptCodes.txt")
+        with open(fileAllCodes, 'w') as fidAllCodes, open(filePositiveCodes, 'w') as fidPositiveCodes:
+            for i in self._concepts:
+                # Go through the concepts in the order they appear in the concept definition file.
+
+                # Get the positive and negative codes (along with their descriptions) for this concept.
+                posCodes = sorted(conceptCodes[i]["Positive"])
+                posDescriptions = codeDictionary.get_descriptions(posCodes)
+                negCodes = sorted(conceptCodes[i]["Negative"])
+                negDescriptions = codeDictionary.get_descriptions(negCodes)
+
+                # Write out the positive and negative codes for the concept.
+                fidAllCodes.write("# {0:s}\n".format(i))
+                fidAllCodes.write("## POSITIVE\n")
+                fidAllCodes.write('\n'.join(
+                    ["{0:s}\t{1:s}".format(posCodes[i], posDescriptions[i]) for i in range(len(posCodes))]))
+                fidAllCodes.write("## NEGATIVE\n")
+                fidAllCodes.write('\n'.join(
+                    ["{0:s}\t{1:s}".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
+
+                # Determine the final code list, positive minus negative.
+                finalCodeList = [(j, k) for j, k in zip(posCodes, posDescriptions)]
+                fidPositiveCodes.write("# {0:s}\n".format(i))
+                for j in finalCodeList:
+                    fidPositiveCodes.write("{0:s}\t{1:s}\n".format(j[0], j[1]))
 
 
 class _FlatFileDefinitions(ConceptDefinition):

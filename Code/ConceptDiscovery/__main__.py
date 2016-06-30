@@ -166,3 +166,4 @@ codeDictionary = CodeDictionary.CodeDictionary(fileCodeDescriptions, dictType=ar
 
 logger.info("Setting up the concept definitions.")
 conceptDefinitions = ConceptDefinitions.ConceptDefinition(fileInput, conceptSource=args.conceptSrc)
+conceptDefinitions.identify_codes(codeDictionary, dirOutput)
