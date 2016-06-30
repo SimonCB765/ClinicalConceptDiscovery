@@ -135,7 +135,7 @@ class ConceptDefinition(object):
                     ["{0:s}\t{1:s}".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
 
                 # Determine the final code list, positive minus negative.
-                finalCodeList = [(j, k) for j, k in zip(posCodes, posDescriptions)]
+                finalCodeList = [(j, k) for j, k in zip(posCodes, posDescriptions) if j not in negCodes]
                 fidPositiveCodes.write("# {0:s}\n".format(i))
                 for j in finalCodeList:
                     fidPositiveCodes.write("{0:s}\t{1:s}\n".format(j[0], j[1]))
