@@ -14,14 +14,22 @@ class ConceptDefinition(object):
 
     The concept definitions are represented in a dictionary with the following format:
     {
-        "Concept1": "Negative": [{"Raw": '"family history"', "Quoted": {'family history'}, "BOW": set()}]
-                    "Positive": [{"Raw": 'blood pressure', "Quoted": set(), "BOW": {'blood', 'pressure'}},
-                                 {"Raw": '"type 2" diabetes', "Quoted": {'type 2'}, "BOW": {'diabetes'}}
-                                ]
-        "Concept2": "Negative": [{"Raw": 'kidney "in clinic"', "Quoted": {'in clinic', "BOW": {'kidney'}}]
-                    "Positive": [{"Raw": '"chronic kidney"', "Quoted": {'chronic kidney'}, "BOW": set()},
-                                 {"Raw": 'kidney', "Quoted": set(), "BOW": {'kidney'}}
-                                ]
+        "Concept1":
+        {
+            "Negative":
+            {
+                "Raw": ['"family history"', '"type 1"'],
+                "Processed": [{"Quoted": {'(family history|type 1)'}, "BOW": set()}]
+            }
+            "Positive":
+            {
+                "Raw": ['blood pressure', '"type 2" diabetes'],
+                "Processed": [
+                              {"Quoted": set(), "BOW": {'blood', 'pressure'}},
+                              {"Quoted": {'type 2'}, "BOW": {'diabetes'}}
+                             ]
+            }
+        }
         ...
     }
 
@@ -74,8 +82,8 @@ class _FlatFileDefinitions(ConceptDefinition):
 
         """
 
-        self._conceptDefinitions = defaultdict(lambda: {"Positive": [{"Raw": "", "Quoted": set(), "BOW": set()}],
-                                                        "Negative": [{"Raw": "", "Quoted": set(), "BOW": set()}]})
+        self._conceptDefinitions = defaultdict(lambda: {"Positive": {"Raw": [], "Processed": []},
+                                                        "Negative": {"Raw": [], "Processed": []}})
 
         currentConcept = None  # The current concept having its terms extracted.
         currentTermType = "Positive"  # Whether the current terms being extracted are positive or negative terms.
@@ -101,40 +109,36 @@ class _FlatFileDefinitions(ConceptDefinition):
                 else:
                     # Found a concept defining term.
                     rawTerm = line.strip()
-                    line = re.sub("\s+", ' ', rawTerm)  # Turn consecutive whitespace into a single space.
-                    quotedTerms = re.findall('".*?"', line)  # Find all quoted terms on the line.
+                    rawTerm = re.sub("\s+", ' ', rawTerm)  # Turn consecutive whitespace into a single space.
+                    quotedTerms = re.findall('".*?"', rawTerm)  # Find all quoted terms on the line.
                     quotedTerms = [i[1:-1] for i in quotedTerms]  # Strip the quotation marks off.
-                    line = re.sub('".*?"', '', line)  # Remove all quoted terms.
+                    nonQuotedWords = re.sub('".*?"', '', rawTerm)  # Remove all quoted terms.
+                    nonQuotedWords = nonQuotedWords.strip()  # Remove any whitespace that may be left over at the ends.
                     bagOfWordsTerms = []  # Initialise the bag of words to empty.
-                    if line:
+                    if nonQuotedWords:
                         # Only put anything in the bag of words list if the remainder of the line is non-empty.
-                        bagOfWordsTerms = re.split("\s+", line.strip())
-                    termDefinition = {"Raw": rawTerm, "Quoted": set(quotedTerms), "BOW": set(bagOfWordsTerms)}
+                        bagOfWordsTerms = re.split("\s+", nonQuotedWords.strip())
+                    termDefinition = {"Quoted": set(quotedTerms), "BOW": set(bagOfWordsTerms)}
 
-                    self._conceptDefinitions[currentConcept][currentTermType].append(termDefinition)
+                    self._conceptDefinitions[currentConcept][currentTermType]["Raw"].append(rawTerm)
+                    self._conceptDefinitions[currentConcept][currentTermType]["Processed"].append(termDefinition)
 
         # Post process the concept definitions to simplify cases where there are terms that are only a single
         # quoted phrase.
-        # Also add a blank term if a concept has no terms of one type (positive or negative).
         for i in self._conceptDefinitions:
-            print(i)
             for j in self._conceptDefinitions[i]:
-                if not self._conceptDefinitions[i][j]:
-                    # No terms are present for this term type, so add a blank term to ensure each term type has
-                    # a term present.
-                    self._conceptDefinitions[i][j].append({"Raw": "", "Quoted": set(), "BOW": set()})
-                else:
-                    # Determine whether there are any terms consisting of only a single quoted term.
-                    combinationTerms = []  # Terms involving unquoted words or multiple separate quoted phrases.
-                    singleQuotedTerms = set()  # Terms containing only a single quoted phrase and nothing else.
-                    for k in self._conceptDefinitions[i][j]:
-                        if not k["BOW"]:
-                            # Term only contains a single quoted phrase.
-                            singleQuotedTerms |= (k["Quoted"])
-                        else:
-                            # Term contains some combination of unquoted words and/or multiple quoted phrases.
-                            combinationTerms.append(k)
+                # Determine whether there are any terms consisting of only a single quoted term.
+                combinationTerms = []  # Terms involving unquoted words or multiple separate quoted phrases.
+                singleQuotedTerms = set()  # Terms containing only a single quoted phrase and nothing else.
+                for k in self._conceptDefinitions[i][j]["Processed"]:
+                    if not k["BOW"]:
+                        # Term only contains a single quoted phrase.
+                        singleQuotedTerms |= (k["Quoted"])
+                    else:
+                        # Term contains some combination of unquoted words and/or multiple quoted phrases.
+                        combinationTerms.append(k)
 
+                if singleQuotedTerms:
                     # Combine all single quoted terms into one regular expression. For example, if the concept has
                     # terms like: "type 1", "chronic kidney disease" and "blood pressure", then these will be combined
                     # into the regular expression (type 1|chronic kidney disease|blood pressure). This works as a code
@@ -142,8 +146,8 @@ class _FlatFileDefinitions(ConceptDefinition):
                     singleQuotedTerms = "({0:s})".format("|".join(singleQuotedTerms))
                     combinationTerms.append({"Quoted": {singleQuotedTerms}, "BOW": set()})  # No bag of words needed.
 
-                    # Update the record of the terms for this concept.
-                    self._conceptDefinitions[i][j] = combinationTerms
+                # Update the record of the terms for this concept.
+                self._conceptDefinitions[i][j]["Processed"] = combinationTerms
 
 
 class _JSONDefinitions(ConceptDefinition):
