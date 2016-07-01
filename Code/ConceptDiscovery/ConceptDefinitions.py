@@ -44,7 +44,9 @@ class ConceptDefinition(object):
 
         :param fileConceptDefinitions:  The location of the file containing the concept definitions.
         :type fileConceptDefinitions:   str
-        :param conceptSource:           The type of concept definition source file.
+        :param conceptSource:           The type of concept definition source file. Valid values are (case insensitive):
+                                            flatfile    - for the flat file input format
+                                            json        - for the JSON input format
         :type conceptSource:            str
         :param delimiter:               The delimiter used in the concept definition file.
         :type delimiter:                str
@@ -61,6 +63,9 @@ class ConceptDefinition(object):
             elif conceptSource.lower() == "json":
                 # Generate a _JSONDefinitions.
                 return super(ConceptDefinition, cls).__new__(_JSONDefinitions)
+            else:
+                # Didn't get one of the permissible
+                raise ValueError("{0:s} is not a permissible value for conceptSource".format(str(conceptSource)))
         else:
             # An attempt is being made to create a ConceptDefinition subclass, so create the subclass.
             return super(ConceptDefinition, cls).__new__(cls, fileConceptDefinitions, conceptSource, delimiter)

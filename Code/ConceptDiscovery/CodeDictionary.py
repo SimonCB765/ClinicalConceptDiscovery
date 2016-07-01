@@ -36,7 +36,9 @@ class CodeDictionary(object):
 
         :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
         :type fileCodeDescriptions:     str
-        :param dictType:                The type of code dictionary to create.
+        :param dictType:                The type of code dictionary to create. Allowed values are (case insensitive):
+                                            readv2  - for Read v2 code hierarchies
+                                            snomed  - for SNOMED hierarchies
         :type dictType:                 str
         :param delimiter:               The delimiter between the code and its description in the file.
         :type delimiter:                str
@@ -53,6 +55,9 @@ class CodeDictionary(object):
             elif dictType.lower() == "snomed":
                 # Generate a _SNOMEDDictionary.
                 return super(CodeDictionary, cls).__new__(_SNOMEDDictionary)
+            else:
+                # Didn't get one of the permissible
+                raise ValueError("{0:s} is not a permissible value for dictType".format(str(dictType)))
         else:
             # An attempt is being made to create a CodeDictionary subclass, so create the subclass.
             return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions, dictType, delimiter)
