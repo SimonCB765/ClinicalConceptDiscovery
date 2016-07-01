@@ -5,6 +5,9 @@ constrain returned codes based on a code regex (so biomed measurements only come
 python 3 is necessary due to the exists_ok keyword in the os.makedirs
 
 
+python ../ConceptDiscovery inputFile
+    can be used to call the code from anywhere
+
 if the same concept is defined multiple times the terms will just keep being added to the record of the concept
 
 positive and negative terms

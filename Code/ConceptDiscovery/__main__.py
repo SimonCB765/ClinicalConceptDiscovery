@@ -9,9 +9,20 @@ import os
 import sys
 
 # User imports.
-from . import CodeDictionary
-from . import ConceptDefinitions
-from Utilities import json_to_ascii
+if __package__ == "ConceptDiscovery":
+    # If the package is ConceptDiscovery, then relative imports are needed.
+    from . import CodeDictionary
+    from . import ConceptDefinitions
+    from Utilities import json_to_ascii
+else:
+    # The code was not called from within the Code directory using 'python -m ConceptDiscovery'.
+    # Therefore, we need to add the top level Code directory to the search path and use absolute imports.
+    currentDir = os.path.dirname(os.path.join(os.getcwd(), __file__))  # Directory containing this file.
+    codeDir = os.path.abspath(os.path.join(currentDir, os.pardir))
+    sys.path.append(codeDir)
+    from ConceptDiscovery import CodeDictionary
+    from ConceptDiscovery import ConceptDefinitions
+    from Utilities import json_to_ascii
 
 # Globals.
 PYVERSION = sys.version_info[0]  # Determine major version number.
