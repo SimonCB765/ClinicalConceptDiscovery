@@ -9,7 +9,6 @@ import os
 import sys
 
 # User imports.
-from Utilities import json_to_ascii
 if __package__ == "ConceptDiscovery":
     # If the package is ConceptDiscovery, then relative imports are needed.
     from . import CodeDictionary
@@ -22,6 +21,7 @@ else:
     sys.path.append(codeDir)
     from ConceptDiscovery import CodeDictionary
     from ConceptDiscovery import ConceptDefinitions
+from Utilities import json_to_ascii
 
 # Globals.
 PYVERSION = sys.version_info[0]  # Determine major version number.
