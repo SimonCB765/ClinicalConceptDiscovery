@@ -127,7 +127,9 @@ class CodeDictionary(object):
         """Get the codes that have a description where all the supplied regular expressions match.
 
         Each entry in regexps should contain a set of regular expression strings, all of which must be found in a given
-        code's description before the code will be returned for that entry.
+        code's description before the code will be returned for that entry. Each string will be padded so that it
+        matches with an additional whitespace/start of line character before it, and an additional whitespace/end of
+        line character after it. The search is case insensitive.
 
         :param regexps: Sets of regular expressions. Each entry should contain a set of regular expressions, all of
                             which must be found in a code's description before the code is deemed a match. Each regular
