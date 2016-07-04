@@ -15,13 +15,14 @@ class CodeDictionary(object):
 
     The code hierarchy is represented as a dictionary. An example (Read v2) hierarchy is:
     {
-        "C":        {"Parents": [],               "Children": [("C1", None)],                   "Description": "..."},
-        "C1":       {"Parents": [("C", None)],    "Children": [("C10", None)],                  "Description": "..."},
-        "C10":      {"Parents": [("C1", None)],   "Children": [("C10E", None), ("C10F", None)], "Description": "..."},
-        "C10E":     {"Parents": [("C10", None)],  "Children": [("C10E4", None)],                "Description": "..."},
-        "C10E4":    {"Parents": [("C10E", None)], "Children": [],                               "Description": "..."},
-        "C10F":     {"Parents": [("C10", None)],  "Children": [("C10F8", None)],                "Description": "..."},
-        "C10F8":    {"Parents": [("C10F", None)], "Children": [],                               "Description": "..."}
+        "C":        {"Level": 1,    "Parents": [],               "Children": [("C1", None)],     "Description": "..."},
+        "C1":       {"Level": 2,    "Parents": [("C", None)],    "Children": [("C10", None)],    "Description": "..."},
+        "C10":      {"Level": 3,    "Parents": [("C1", None)],   "Children": [("C10E", None),    "Description": "..."},
+                                                                              ("C10F", None)],
+        "C10E":     {"Level": 4,    "Parents": [("C10", None)],  "Children": [("C10E4", None)],  "Description": "..."},
+        "C10E4":    {"Level": 5,    "Parents": [("C10E", None)], "Children": [],                 "Description": "..."},
+        "C10F":     {"Level": 4,    "Parents": [("C10", None)],  "Children": [("C10F8", None)],  "Description": "..."},
+        "C10F8":    {"Level": 5,    "Parents": [("C10F", None)], "Children": [],                 "Description": "..."}
     }
 
     Here, None is the default label for the edge.
@@ -67,8 +68,9 @@ class CodeDictionary(object):
 
         Restrictions can be placed on the extraction through the relationships, levels to ignore and levels to extract.
         Relationships - Each edge has a label on it that determines what type of relationship the edge indicates
-                            (e.g. part of, is a, has a). The child extraction can be restricted to extracting only
-                            children of the supplied codes that have one of the supplied relationships.
+                            (e.g. part of, is a, has a). The extraction can be restricted to extracting only
+                            children of the supplied codes that are reachable by traversing edges having one of the
+                            supplied relationships.
         Levels to ignore - This can be used to ignore a number of levels of children below the supplied codes. For
                                example, to ignore the immediate children and start extracting at the grandchild level,
                                set levels to ignore to 1.
@@ -80,9 +82,9 @@ class CodeDictionary(object):
         :type codes:            list
         :param relationships:   The relationships that should be traversed when extracting children. To ignore
                                     edge labels when extracting, set this value to a falsey value (e.g. None).
-                                    If you're restricting extraction to children with only a certain set of edge labels,
-                                    but want to also extract all children without an edge label, then include None in
-                                    the list of relationships.
+                                    If you're restricting extraction to children reachable by traversing only a certain
+                                    set of edge labels, but want to also extract all children reachable by an edge
+                                    without an edge label, then include None in the list of relationships.
         :type relationships:    list
         :param levelsToIgnore:  The number of levels below the current codes to ignore before extracting children.
         :type levelsToIgnore:   int
@@ -94,6 +96,55 @@ class CodeDictionary(object):
         """
 
         return self._get_relatives(codes, "Children", relationships, levelsToIgnore, levelsToExtract)
+
+    def get_codes_at_level(self, codes, level, relationships=None):
+        """Get all codes of a given level that are reachable in the code hierarchy from the input codes.
+
+        Example for Read v2 hierarchy - Given codes [1Z1, 1Z10, C10, C10E, C10E0]:
+        level 1 - [1, C]
+        level 2 - [1Z, C1]
+        level 3 - [1Z1, C10]
+        level 4 - [1Z1., C10.]
+        level 5 - [1Z1.., C10..]
+        Where . means any character that validly follows from the preceding character in the code hierarchy (e.g. C10F
+        is valid but C10Z is not for Read v2).
+
+        :param codes:           The codes that are to have their ancestors/descendants found.
+        :type codes:            list
+        :param level:           The level of codes to return (e.g. 1 to return level 1 (top most level) codes).
+        :type level:            int
+        :param relationships:   The relationships that should be traversed when extracting codes. To ignore
+                                    edge labels when extracting, set this value to a falsey value (e.g. None).
+                                    If you're restricting extraction to codes reachable by traversing only a certain
+                                    set of edge labels, but want to also extract all codes reachable by an edge
+                                    without an edge label, then include None in the list of relationships.
+        :type relationships:    list
+        :return:                The codes of the given level that can be reached by traversing the hierarchy starting
+                                    at the given list of codes.
+        :rtype:                 set
+
+        """
+
+        reachableCodes = set()  # The codes of the given level reachable from the input codes.
+
+        # Go through each code and find the codes in the hierarchy of the given level reachable from it.
+        for i in codes:
+            codeLevel = self._codeHierarchy[i]["Level"]
+            if codeLevel == level:
+                # This code is already of the correct level, so just add it to the set of codes to return.
+                reachableCodes.add(i)
+            else:
+                # Find the codes of the given level reachable from this code. We need to find children if the current
+                # code is at a lower level than the desired level (i.e. if this code is level 1 and the desired level
+                # is level 3), and parents otherwise. We also need to skip levels in the hierarchy if the given level
+                # is more than one away from the current code's level (i.e. the current code is level 1 and the given
+                # level is 3).
+                findParentsOrChildren = "Children" if codeLevel < level else "Parents"
+                levelsToSkip = abs(self._codeHierarchy[i]["Level"] - level) - 1
+                reachableCodes |= set(self._get_relatives([i], findParentsOrChildren, relationships=relationships,
+                                                          levelsToIgnore=levelsToSkip, levelsToExtract=1))
+
+        return reachableCodes
 
     def get_codes_from_words(self, words):
         """Get codes based on bags of words.
@@ -183,8 +234,9 @@ class CodeDictionary(object):
 
         Restrictions can be placed on the extraction through the relationships, levels to ignore and levels to extract.
         Relationships - Each edge has a label on it that determines what type of relationship the edge indicates
-                            (e.g. part of, is a, has a). The parent extraction can be restricted to extracting only
-                            parents of the supplied codes that have one of the supplied relationships.
+                            (e.g. part of, is a, has a). The extraction can be restricted to extracting only
+                            parents of the supplied codes that are reachable by traversing edges having one of the
+                            supplied relationships.
         Levels to ignore - This can be used to ignore a number of levels of parents above the supplied codes. For
                                example, to ignore the immediate parents and start extracting at the grandparent level,
                                set levels to ignore to 1.
@@ -196,9 +248,9 @@ class CodeDictionary(object):
         :type codes:            list
         :param relationships:   The relationships that should be traversed when extracting children. To ignore
                                     edge labels when extracting, set this value to a falsey value (e.g. None).
-                                    If you're restricting extraction to parents with only a certain set of edge labels,
-                                    but want to also extract all parents without an edge label, then include None in
-                                    the list of relationships.
+                                    If you're restricting extraction to parents reachable by traversing only a certain
+                                    set of edge labels, but want to also extract all parents reachable by an edge
+                                    without an edge label, then include None in the list of relationships.
         :type relationships:    list
         :param levelsToIgnore:  The number of levels below the current codes to ignore before extracting parents.
         :type levelsToIgnore:   int
@@ -217,7 +269,8 @@ class CodeDictionary(object):
         Restrictions can be placed on the extraction through the relationships, levels to ignore and levels to extract.
         Relationships - Each edge has a label on it that determines what type of relationship the edge indicates
                             (e.g. part of, is a, has a). The extraction can be restricted to extracting only
-                            relatives of the supplied codes that have one of the supplied relationships.
+                            relatives of the supplied codes that are reachable by traversing edges having one of the
+                            supplied relationships.
         Levels to ignore - This can be used to ignore a number of levels of relatives above/below the supplied codes.
                                For example, to ignore immediate relatives (parents/children) and start extracting at
                                the second generation of relatives (grandparent/grandchild), set levels to ignore to 1.
@@ -232,9 +285,9 @@ class CodeDictionary(object):
         :type direction:        str
         :param relationships:   The relationships that should be traversed when extracting relatives. To ignore
                                     edge labels when extracting, set this value to a falsey value (e.g. None).
-                                    If you're restricting extraction to relatives with only a certain set of edge
-                                    labels, but want to also extract all relatives without an edge label, then include
-                                    None in the list of relationships.
+                                    If you're restricting extraction to relatives reachable by traversing only a certain
+                                    set of edge labels, but want to also extract all relatives reachable by an edge
+                                    without an edge label, then include None in the list of relationships.
         :type relationships:    list
         :param levelsToIgnore:  The number of levels above/below the codes to ignore before extracting relatives.
         :type levelsToIgnore:   int
@@ -285,7 +338,8 @@ class _ReadDictionary(CodeDictionary):
         """Initialise the Read code dictionary.
 
         The file containing the code descriptions is assumed to contain one code and description per line, with the
-        code coming first, followed by the delimiter and then the description.
+        code coming first, followed by the delimiter and then the description. Codes in the file are assumed to have
+        no additional characters (e.g. trailing full stops or percentage signs).
 
         :param fileCodeDescriptions:    The location of the file containing the mapping of codes to their descriptions.
         :type fileCodeDescriptions:     str
@@ -297,7 +351,7 @@ class _ReadDictionary(CodeDictionary):
         """
 
         # Initialise the code hierarchy.
-        self._codeHierarchy = defaultdict(lambda: {"Parents": [], "Children": [], "Description": "", "Searchable": ""})
+        self._codeHierarchy = defaultdict(lambda: {"Level": None, "Parents": [], "Children": [], "Description": ""})
 
         # Initialise the word dictionary.
         self._wordDict = defaultdict(set)
@@ -313,7 +367,7 @@ class _ReadDictionary(CodeDictionary):
                     chunks = line.split(delimiter)
                     code = chunks[0]
                     self._codeHierarchy[code]["Description"] = chunks[1]
-                    self._codeHierarchy[code]["Searchable"] = chunks[1].lower()
+                    self._codeHierarchy[code]["Level"] = len(code)
                     if len(code) > 1:
                         # If the code consists of at least 2 characters, then the code has a parent and is therefore the
                         # child of that parent.
