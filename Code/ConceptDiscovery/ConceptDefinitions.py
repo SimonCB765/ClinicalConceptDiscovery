@@ -133,11 +133,11 @@ class ConceptDefinition(object):
                 # Write out the positive and negative codes for the concept.
                 fidAllCodes.write("# {0:s}\n".format(i))
                 fidAllCodes.write("## POSITIVE\n")
-                fidAllCodes.write('\n'.join(
-                    ["{0:s}\t{1:s}".format(posCodes[i], posDescriptions[i]) for i in range(len(posCodes))]))
-                fidAllCodes.write("\n## NEGATIVE\n")
-                fidAllCodes.write('\n'.join(
-                    ["{0:s}\t{1:s}".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
+                fidAllCodes.write(''.join(
+                    ["{0:s}\t{1:s}\n".format(posCodes[i], posDescriptions[i]) for i in range(len(posCodes))]))
+                fidAllCodes.write("## NEGATIVE\n")
+                fidAllCodes.write(''.join(
+                    ["{0:s}\t{1:s}\n".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
 
                 # Determine the final code list, positive minus negative.
                 finalCodeList = [(j, k) for j, k in zip(posCodes, posDescriptions) if j not in negCodes]
