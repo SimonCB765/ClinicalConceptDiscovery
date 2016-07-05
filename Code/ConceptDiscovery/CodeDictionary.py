@@ -131,6 +131,24 @@ class CodeDictionary(object):
 
         return set(extractedRelatives)
 
+    def get_all_codes_at_level(self, level, relationships=None):
+        """Get all codes of a given level in the code hierarchy.
+
+        :param level:           The level of codes to return (e.g. 1 to return level 1 (top most level) codes).
+        :type level:            int
+        :param relationships:   The relationships that should be traversed when extracting codes. To ignore
+                                    edge labels when extracting, set this value to a falsey value (e.g. None).
+                                    If you're restricting extraction to codes reachable by traversing only a certain
+                                    set of edge labels, but want to also extract all codes reachable by an edge
+                                    without an edge label, then include None in the list of relationships.
+        :type relationships:    list
+        :return:                All codes of the given level in the code hierarchy.
+        :rtype:                 set
+
+        """
+
+        return self.get_codes_at_level([], level, relationships)
+
     def get_ancestors(self, codes, relationships=None, levelsToIgnore=0, levelsToExtract=1):
         """Extract the ancestors of a list of codes.
 
@@ -211,7 +229,8 @@ class CodeDictionary(object):
         Where . means any character that validly follows from the preceding character in the code hierarchy (e.g. C10F
         is valid but C10Z is not for Read v2).
 
-        :param codes:           The codes that are to have their ancestors/descendants found.
+        :param codes:           The codes that are to have their ancestors/descendants found. If this list is empty,
+                                    will return all codes in the hierarchy at the given level.
         :type codes:            list
         :param level:           The level of codes to return (e.g. 1 to return level 1 (top most level) codes).
         :type level:            int
@@ -222,29 +241,35 @@ class CodeDictionary(object):
                                     without an edge label, then include None in the list of relationships.
         :type relationships:    list
         :return:                The codes of the given level that can be reached by traversing the hierarchy starting
-                                    at the given list of codes.
+                                    at the given list of codes. Alternatively, all codes at the given level if no
+                                    codes were given as input.
         :rtype:                 set
 
         """
 
         reachableCodes = set()  # The codes of the given level reachable from the input codes.
 
-        # Go through each code and find the codes in the hierarchy of the given level reachable from it.
-        for i in codes:
-            codeLevel = self._codeHierarchy[i]["Level"]
-            if codeLevel == level:
-                # This code is already of the correct level, so just add it to the set of codes to return.
-                reachableCodes.add(i)
-            else:
-                # Find the codes of the given level reachable from this code. We need to find descendants if the current
-                # code is at a lower level than the desired level (i.e. if this code is level 1 and the desired level
-                # is level 3), and ancestors otherwise. We also need to skip levels in the hierarchy if the given level
-                # is more than one away from the current code's level (i.e. the current code is level 1 and the given
-                # level is 3).
-                findAncestorsOrDescendants = "Children" if codeLevel < level else "Parents"
-                levelsToSkip = abs(self._codeHierarchy[i]["Level"] - level) - 1
-                reachableCodes |= set(self._get_relatives([i], findAncestorsOrDescendants, relationships=relationships,
-                                                          levelsToIgnore=levelsToSkip, levelsToExtract=1))
+        if codes:
+            # Go through each code and find the codes in the hierarchy of the given level reachable from it.
+            for i in codes:
+                codeLevel = self._codeHierarchy[i]["Level"]
+                if codeLevel == level:
+                    # This code is already of the correct level, so just add it to the set of codes to return.
+                    reachableCodes.add(i)
+                else:
+                    # Find the codes of the given level reachable from this code. We need to find descendants if the
+                    # current code is at a lower level than the desired level (i.e. if this code is level 1 and the
+                    # desired level is level 3), and ancestors otherwise. We also need to skip levels in the hierarchy
+                    # if the given level is more than one away from the current code's level (i.e. the current code is
+                    # level 1 and the given level is 3).
+                    findAncestorsOrDescendants = "Children" if codeLevel < level else "Parents"
+                    levelsToSkip = abs(self._codeHierarchy[i]["Level"] - level) - 1
+                    reachableCodes |= set(self._get_relatives(
+                        [i], findAncestorsOrDescendants, relationships=relationships, levelsToIgnore=levelsToSkip,
+                        levelsToExtract=1))
+        else:
+            # Extract all codes at the given level if no input codes were given.
+            reachableCodes = set([i for i in self._codeHierarchy if self._codeHierarchy[i]["Level"] == level])
 
         return reachableCodes
 
