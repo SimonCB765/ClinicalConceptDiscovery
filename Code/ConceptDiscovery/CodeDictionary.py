@@ -400,6 +400,10 @@ class _ReadDictionary(CodeDictionary):
                         self._codeHierarchy[code]["Parents"] = [(code[:-1], None)]
                         self._codeHierarchy[code[:-1]]["Children"].append((code, None))
 
+                    # Some descriptions start with something like [V]XXX. In order to match XXX as a real word, a space
+                    # must be inserted between [V] and XXX.
+                    chunks[1] = re.sub("^\[[a-zA-Z]+\]", "\g<0> ", chunks[1])
+
                     # Split the description into words.
                     words = wordFinder.split(chunks[1])
 
