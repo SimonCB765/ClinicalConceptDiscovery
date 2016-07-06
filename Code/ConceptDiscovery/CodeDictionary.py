@@ -147,7 +147,7 @@ class CodeDictionary(object):
 
         """
 
-        return self.get_codes_at_level([], level, relationships)
+        return self.get_reachable_codes_at_level([], level, relationships)
 
     def get_ancestors(self, codes, relationships=None, levelsToIgnore=0, levelsToExtract=1):
         """Extract the ancestors of a list of codes.
@@ -217,7 +217,7 @@ class CodeDictionary(object):
 
         return self._get_relatives(codes, "Children", relationships, levelsToIgnore, levelsToExtract)
 
-    def get_codes_at_level(self, codes, level, relationships=None):
+    def get_reachable_codes_at_level(self, codes, level, relationships=None):
         """Get all codes of a given level that are reachable in the code hierarchy from the input codes.
 
         Example for Read v2 hierarchy - Given codes [1Z1, 1Z10, C10, C10E, C10E0]:
