@@ -70,13 +70,17 @@ class ConceptDefinition(object):
             # An attempt is being made to create a ConceptDefinition subclass, so create the subclass.
             return super(ConceptDefinition, cls).__new__(cls, fileConceptDefinitions, conceptSource, delimiter)
 
-    def identify_codes(self, codeDictionary, dirResults):
+    def _identify_codes(self, codeDictionary):
         """Extract the codes for the given concepts based on the terms used to define them.
 
         :param codeDictionary:  The code dictionary to use when searching for codes.
         :type codeDictionary:   CodeDictionary
-        :param dirResults:      Location where the results of the code extraction should be saved.
-        :type dirResults:       str
+        :return:                The positive and negative codes for each concept. Each key in the return value
+                                    is the name of a user defined concept. Each key's corresponding value ia
+                                    a dictionary of the form {"Positive": set(), "Negative": set()}, where the value
+                                    for the "Positive" key is a set containing the positive codes for the concept, and
+                                    the value for the "Negative" key is a set of the negative codes.
+        :rtype:                 dict
 
         """
 
@@ -116,6 +120,21 @@ class ConceptDefinition(object):
                     # If there are no processed terms for this term type, then the concept has no term's of this type
                     # (likely negative terms).
                     conceptCodes[i][j] = set()
+
+        return conceptCodes
+
+    def identify_codes(self, codeDictionary, dirResults):
+        """Extract the codes for the given concepts based on the terms used to define them.
+
+        :param codeDictionary:  The code dictionary to use when searching for codes.
+        :type codeDictionary:   CodeDictionary
+        :param dirResults:      Location where the results of the code extraction should be saved.
+        :type dirResults:       str
+
+        """
+
+        # Determine the negative and positive codes for the concepts.
+        conceptCodes = self._identify_codes(codeDictionary)
 
         # Write out the concept codes and their descriptions.
         fileAllCodes = os.path.join(dirResults, "AllConceptCodes.txt")
