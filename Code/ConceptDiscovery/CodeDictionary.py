@@ -2,6 +2,7 @@
 
 # Python imports.
 from collections import defaultdict
+import heapq
 import re
 
 
@@ -134,6 +135,10 @@ class CodeDictionary(object):
     def get_all_ancestors(self, codes):
         """Get all the ancestors of a set of codes.
 
+        If the input codes come from different levels in the code hierarchy, then the ancestor codes may contain
+        some of the input codes. For example, with a Read v2 hierarchy if you give as input codes ["C10", "C10E"], then
+        C10 will be in the set of ancestors (as it is an ancestor of C10E).
+
         :param codes:   The codes to get the ancestors of.
         :type codes:    iterable
         :return:        The ancestors of the given codes.
@@ -172,6 +177,10 @@ class CodeDictionary(object):
 
     def get_all_descendants(self, codes):
         """Get all the descendants of a set of codes.
+
+        If the input codes come from different levels in the code hierarchy, then the descendant codes may contain
+        some of the input codes. For example, with a Read v2 hierarchy if you give as input codes ["C10", "C10E"], then
+        C10E will be in the set of descendants (as it is a descendant of C10).
 
         :param codes:   The codes to get the descendants of.
         :type codes:    iterable
