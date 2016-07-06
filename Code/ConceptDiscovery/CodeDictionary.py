@@ -131,6 +131,27 @@ class CodeDictionary(object):
 
         return set(extractedRelatives)
 
+    def get_all_ancestors(self, codes):
+        """Get all the ancestors of a set of codes.
+
+        :param codes:   The codes to get the ancestors of.
+        :type codes:    iterable
+        :return:        The ancestors of the given codes.
+        :rtype:         set
+
+        """
+
+        codes = set(codes)  # Copy the set of input codes.
+        ancestors = set()  # The ancestor codes.
+
+        while codes:
+            currentCode = codes.pop()
+            parentCodes = {i[0] for i in self._codeHierarchy.get(currentCode, {}).get("Parents", [])}
+            ancestors |= parentCodes
+            codes |= parentCodes
+
+        return ancestors
+
     def get_all_codes_at_level(self, level, relationships=None):
         """Get all codes of a given level in the code hierarchy.
 
@@ -148,6 +169,27 @@ class CodeDictionary(object):
         """
 
         return self.get_reachable_codes_at_level([], level, relationships)
+
+    def get_all_descendants(self, codes):
+        """Get all the descendants of a set of codes.
+
+        :param codes:   The codes to get the descendants of.
+        :type codes:    iterable
+        :return:        The descendants of the given codes.
+        :rtype:         set
+
+        """
+
+        codes = set(codes)  # Copy the set of input codes.
+        descendants = set()  # The descendant codes.
+
+        while codes:
+            currentCode = codes.pop()
+            childCodes = {i[0] for i in self._codeHierarchy.get(currentCode, {}).get("Children", [])}
+            descendants |= childCodes
+            codes |= childCodes
+
+        return descendants
 
     def get_ancestors(self, codes, relationships=None, levelsToIgnore=0, levelsToExtract=1):
         """Extract the ancestors of a list of codes.
