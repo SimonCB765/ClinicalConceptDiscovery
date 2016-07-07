@@ -33,19 +33,29 @@ VALIDDICTS = ["readv2", "snomed"]  # The valid code dictionary types accepted
 # Create Argument Parser #
 #------------------------#
 parser = argparse.ArgumentParser(description="Extract codes corresponding to user-defined concept definitions.",
-                                 epilog="For additional information on the expected format and contents of the input "
-                                        "and output files please see the README.")
+                                 epilog="For additional information on the parameters and the expected format and "
+                                        "contents of the input and output files please see the README.")
 
 # Mandatory arguments.
 parser.add_argument("input", help="The location of the file containing the concept definitions.", type=str)
 
 # Optional arguments.
-parser.add_argument("-c", "--config", help="The location of the configuration file to use.", type=str)
+parser.add_argument("-c", "--config",
+                    help="The location of the configuration file to use. Default: default location.",
+                    type=str)
 parser.add_argument("-d", "--dictionary",
                     choices=VALIDDICTS,
                     default=VALIDDICTS[0],
-                    help="The type of dictionary being used to construct the code hierarchy",
+                    help="The type of dictionary being used to construct the code hierarchy. Default: Read v2.",
                     type=str.lower)
+parser.add_argument("-g", "--generalise",
+                    action="store_true",
+                    help="Whether generalised codes should be found. Default: do not generalise.")
+parser.add_argument("-l", "--searchLevel",
+                    default=1,
+                    help="The level in the hierarchy where the generalisation search should stop. A smaller value "
+                         "stops the search higher up the code hierarchy. Default: 1.",
+                    type=int)
 parser.add_argument("-o", "--output",
                     help="The location of the directory to write the output files to. Default: a timestamped "
                          "subdirectory in the Results directory.",
@@ -53,8 +63,13 @@ parser.add_argument("-o", "--output",
 parser.add_argument("-s", "--conceptSrc",
                     choices=VALIDCONCEPTSRC,
                     default=VALIDCONCEPTSRC[0],
-                    help="The type of input file that contains the concept definitions.",
+                    help="The type of input file that contains the concept definitions. Default: flat file format.",
                     type=str.lower)
+parser.add_argument("-t", "--childThreshold",
+                    default=0.2,
+                    help="The fraction of child codes that must be positive before a parent code is marked as "
+                         "positive. Default: 0.2.",
+                    type=float)
 parser.add_argument("-w", "--overwrite",
                     action="store_true",
                     help="Whether the output directory should be overwritten if it exists. Default: do not overwrite.")
@@ -176,4 +191,18 @@ codeDictionary = CodeDictionary.CodeDictionary(fileCodeDescriptions, dictType=ar
 
 logger.info("Setting up the concept definitions.")
 conceptDefinitions = ConceptDefinitions.ConceptDefinition(fileInput, conceptSource=args.conceptSrc)
-conceptDefinitions.identify_codes(codeDictionary, dirOutput)
+
+if args.generalise:
+    logger.info("Running generalised code identification.")
+    if args.searchLevel < 1:
+        logger.warning("The search level provided ({0:d}) is less than 1 and will be treated as if it was 1."
+                       .format(args.searchLevel))
+    if args.childThreshold < 0 or args.childThreshold > 1:
+        message = "less than 0 and will be treated as if it was 0" if args.childThreshold < 0 else \
+            "greater than 1 and will be treated as if it was 1"
+        logger.warning("The child threshold provided ({0:.2f}) is {1:s}.".format(args.childThreshold, message))
+    conceptDefinitions.identify_and_generalise_codes(codeDictionary, dirOutput, searchLevel=args.searchLevel,
+                                                     childThreshold=args.childThreshold)
+else:
+    logger.info("Running code identification without generalisation.")
+    conceptDefinitions.identify_codes(codeDictionary, dirOutput)
