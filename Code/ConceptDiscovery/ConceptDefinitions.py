@@ -164,6 +164,94 @@ class ConceptDefinition(object):
                 for j in finalCodeList:
                     fidPositiveCodes.write("{0:s}\t{1:s}\n".format(j[0], j[1]))
 
+    def identify_and_generalise_codes(self, codeDictionary, dirResults, searchLevel=1, childThreshold=0.2):
+        """Extract generalised codes for the given concepts based on the terms used to define them.
+
+        Codes returned for a concept by this method muse meet at least one of the following criteria:
+            1) A term defining the concept must match the code's description.
+            2) The code must be similar to a code where a term matches the description. Similar here means that a
+                certain fraction of the code's children must meet one of these two criteria, or the code must be
+                a descendant of a code meeting criterion 2.
+
+        Generalised codes include both the codes where the concept term definitions match the code's description and
+        those codes that can be generalised to from the descrip
+
+        :param codeDictionary:  The code dictionary to use when searching for codes.
+        :type codeDictionary:   CodeDictionary
+        :param dirResults:      Location where the results of the code extraction should be saved.
+        :type dirResults:       str
+        :param searchLevel:     The level in the hierarchy where the search should stop. The search begins from the
+                                    bottom/leaves of the hierarchy, and therefore a searchLevel of X means that only
+                                    codes that occur at or below level X (i.e. their level is >= X) in the hierarchy
+                                    can be added.
+        :type searchLevel:      int
+        :param childThreshold:  The fraction of child codes that must be positive before a parent code is marked as
+                                    positive.
+        :type childThreshold:   float
+
+        """
+
+        # Determine the negative and positive codes for the concepts.
+        conceptCodes = self._identify_codes(codeDictionary)
+
+        # Determine the newly found positive codes.
+        generalisedCodes = {}
+        for key, values in conceptCodes.items():
+            # The initial set of codes to generalise from should be the non-negative codes for the concept.
+            generalisedCodes[key] = codeDictionary.generalise_codes(values["Positive"] - values["Negative"],
+                                                                    searchLevel, childThreshold)
+
+        # Write out the concept codes and their descriptions.
+        fileAllCodes = os.path.join(dirResults, "AllConceptCodes.txt")
+        filePositiveCodes = os.path.join(dirResults, "PositiveConceptCodes.txt")
+        fileGenAllCodes = os.path.join(dirResults, "AllConceptCodes_General.txt")
+        fileGenPositiveCodes = os.path.join(dirResults, "PositiveConceptCodes_General.txt")
+        with open(fileAllCodes, 'w') as fidAllCodes, open(filePositiveCodes, 'w') as fidPositiveCodes, \
+                open(fileGenAllCodes, 'w') as fidGenAllCodes, open(fileGenPositiveCodes, 'w') as fidGenPositiveCodes:
+            for i in self._concepts:
+                # Go through the concepts in the order they appear in the concept definition file.
+
+                # Get the positive and negative codes (along with their descriptions) for this concept.
+                posCodes = sorted(conceptCodes[i]["Positive"])
+                posDescriptions = codeDictionary.get_descriptions(posCodes)
+                generalCodes = sorted(generalisedCodes[i] | conceptCodes[i]["Positive"])
+                generalDescriptions = codeDictionary.get_descriptions(generalCodes)
+                negCodes = sorted(conceptCodes[i]["Negative"])
+                negDescriptions = codeDictionary.get_descriptions(negCodes)
+
+                # Write out the positive and negative codes for the concept.
+                fidAllCodes.write("# {0:s}\n".format(i))
+                fidAllCodes.write("## POSITIVE\n")
+                fidAllCodes.write(''.join(
+                    ["{0:s}\t{1:s}\n".format(posCodes[i], posDescriptions[i]) for i in range(len(posCodes))]))
+                fidAllCodes.write("## NEGATIVE\n")
+                fidAllCodes.write(''.join(
+                    ["{0:s}\t{1:s}\n".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
+
+                # Determine the final code list, positive minus negative.
+                finalCodeList = [(j, k) for j, k in zip(posCodes, posDescriptions) if j not in negCodes]
+                fidPositiveCodes.write("# {0:s}\n".format(i))
+                for j in finalCodeList:
+                    fidPositiveCodes.write("{0:s}\t{1:s}\n".format(j[0], j[1]))
+
+                # Write out the generalised positive codes and the negative codes for the concept.
+                fidGenAllCodes.write("# {0:s}\n".format(i))
+                fidGenAllCodes.write("## POSITIVE\n")
+                for ind, j in enumerate(generalCodes):
+                    if j in posCodes:
+                        fidGenAllCodes.write("\t{0:s}\t{1:s}\n".format(j, generalDescriptions[ind]))
+                    else:
+                        fidGenAllCodes.write("*\t{0:s}\t{1:s}\n".format(j, generalDescriptions[ind]))
+                fidGenAllCodes.write("## NEGATIVE\n")
+                fidGenAllCodes.write(''.join(
+                    ["\t{0:s}\t{1:s}\n".format(negCodes[i], negDescriptions[i]) for i in range(len(negCodes))]))
+
+                # Determine the final code list, general positive codes minus negative codes.
+                finalGenCodeList = [(j, k) for j, k in zip(generalCodes, generalDescriptions) if j not in negCodes]
+                fidGenPositiveCodes.write("# {0:s}\n".format(i))
+                for j in finalGenCodeList:
+                    fidGenPositiveCodes.write("{0:s}\t{1:s}\n".format(j[0], j[1]))
+
 
 class _FlatFileDefinitions(ConceptDefinition):
     """Create a set of concept definitions from a flat file input source."""
