@@ -194,6 +194,13 @@ conceptDefinitions = ConceptDefinitions.ConceptDefinition(fileInput, conceptSour
 
 if args.generalise:
     logger.info("Running generalised code identification.")
+    if args.searchLevel < 1:
+        logger.warning("The search level provided ({0:d}) is less than 1 and will be treated as if it was 1."
+                       .format(args.searchLevel))
+    if args.childThreshold < 0 or args.childThreshold > 1:
+        message = "less than 0 and will be treated as if it was 0" if args.childThreshold < 0 else \
+            "greater than 1 and will be treated as if it was 1"
+        logger.warning("The child threshold provided ({0:.2f}) is {1:s}.".format(args.childThreshold, message))
     conceptDefinitions.identify_and_generalise_codes(codeDictionary, dirOutput, searchLevel=args.searchLevel,
                                                      childThreshold=args.childThreshold)
 else:
