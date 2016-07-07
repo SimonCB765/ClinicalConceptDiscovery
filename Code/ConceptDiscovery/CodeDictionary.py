@@ -64,6 +64,86 @@ class CodeDictionary(object):
             # An attempt is being made to create a CodeDictionary subclass, so create the subclass.
             return super(CodeDictionary, cls).__new__(cls, fileCodeDescriptions, dictType, delimiter)
 
+    def generalise_codes(self, initialCodes, searchLevel=1, childThreshold=0.2):
+        """Generalise a set of codes by identifying more general codes that are similar to those in the initial set.
+
+        For each code that is evaluated, each of its parent codes are examined in turn to determine the level of
+        support they have from their children. A code's level of support is calculated as the fraction of its
+        children that are either in the initial input code list or had enough support to be included in the generalised
+        list of codes.
+
+        Given the initial set of codes, the search proceeds by examining codes lowest in the hierarchy fist. This
+        ensures that no code is examined before all of its children have been, and therefore that when a code is
+        examined all information about the support it gets from its children is in place.
+
+        Once all ancestor codes of the initial codes with sufficient support have been identified, all descendants
+        of those ancestors are identified.
+
+        :param initialCodes:    The set of codes to generalise from.
+        :type initialCodes:     set
+        :param searchLevel:     The level in the hierarchy where the search should stop. The search begins from the
+                                    bottom/leaves of the hierarchy, and therefore a searchLevel of X means that only
+                                    codes that occur at or below level X (i.e. their level is >= X) in the hierarchy
+                                    can be added.
+        :type searchLevel:      int
+        :param childThreshold:  The fraction of child codes that must be positive before a parent code is added
+                                    to the list of generalised codes.
+        :type childThreshold:   float
+        :return:                The generalised codes discovered during the search and their descendants.
+                                    This consists of the ancestral codes of the initial codes that have been
+                                    generalised to from the initial codes by going up the hierarchy and all
+                                    descendant codes of these codes. This may or may not contain all the initial codes.
+        :rtype:                 set
+
+        """
+
+        # Setup variables to record the different sets of codes needed.
+        initAndGeneralCodes = set(initialCodes)  # All codes found (both initial and generalised).
+        generalisedCodes = set()  # The generalised codes that have been found by examining their children.
+
+        # Create a heap to store the codes that still need searching through. Python heaps are min heaps, and therefore
+        # the smallest item is at the top/front of the heap. The levels are therefore stored as negatives in order to
+        # ensure that the codes deeper in the hierarchy (closer to the leaves) are searched first.
+        codesToSearch = [(-self._codeHierarchy[i]["Level"], i) for i in initAndGeneralCodes]
+        heapq.heapify(codesToSearch)
+
+        # Search through all codes (both initial and generalised) that need their children examining.
+        # By searching through the hierarchy in a bottom up order there is no risk that a code will be evaluated for
+        # generalisation before all its children have been. All information about the support a code gets from its
+        # children is therefore in place before a code is examined.
+        while codesToSearch:
+            # Get the code at the top/front of the heap.
+            level, code = heapq.heappop(codesToSearch)
+            level *= -1  # Get the level back into the space of positive integers.
+
+            # Determine whether any of the code's parents should be included based on the support of their child codes.
+            # A parent should only be included if they have enough support from their child codes (i.e. enough of their
+            # child codes are in the initial set or have been found through generalisation).
+            # Only look at parents that were not in the initial list of codes and have not already been identified as
+            # new codes to add. This ensures that each parent is only checked once.
+            parents = set([i[0] for i in self._codeHierarchy[code]["Parents"]]) - initAndGeneralCodes
+            for i in parents:
+                # The only children that can provide support are those that are in the initial set of codes or have been
+                # found through generalisation.
+                children = set(j[0] for j in self._codeHierarchy[i]["Children"])
+                supportingChildren = children & initAndGeneralCodes
+
+                if children and (len(supportingChildren) / len(children)) > childThreshold:
+                    # If the support is sufficient, then the parent should be added.
+                    initAndGeneralCodes.add(i)
+                    generalisedCodes.add(i)
+                    parentLevel = level - 1  # Parent is one level up the hierarchy.
+                    if parentLevel > searchLevel:
+                        # If the parent's level is greater than the max search level (and therefore further down the
+                        # hierarchy as level 1 is the root), then we need to search the parent.
+                        heapq.heappush(codesToSearch, (-self._codeHierarchy[i]["Level"], i))
+
+        # Identify the descendant codes of the codes that have been found through generalisation.
+        generalDescendants = self.get_all_descendants(generalisedCodes)
+
+        # Return the union of the codes found by generalising up and down the hierarchy.
+        return generalisedCodes | generalDescendants
+
     def _get_relatives(self, codes, direction, relationships=None, levelsToIgnore=0, levelsToExtract=1):
         """Extract the relatives of a list of codes.
 
