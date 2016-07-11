@@ -26,7 +26,7 @@ from Utilities import json_to_ascii
 # Globals.
 PYVERSION = sys.version_info[0]  # Determine major version number.
 VALIDCONCEPTSRC = ["flatfile", "json"]  # The valid concept source file types.
-VALIDDICTS = ["readv2", "snomed"]  # The valid code dictionary types accepted
+VALIDDICTS = ["readv2", "snomed"]  # The valid code dictionary types accepted.
 
 
 #------------------------#
