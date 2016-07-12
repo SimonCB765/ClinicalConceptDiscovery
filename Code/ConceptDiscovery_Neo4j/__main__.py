@@ -12,6 +12,8 @@ import sys
 if __package__ == "ConceptDiscovery_Neo4j":
     # If the package is ConceptDiscovery_Neo4j, then relative imports are needed.
     from . import CodeDatabase
+    from . import instantiate_db
+    from . import process_code_mappings
 else:
     # The code was not called from within the Code directory using 'python -m ConceptDiscovery_Neo4j'.
     # Therefore, we need to add the top level Code directory to the search path and use absolute imports.
@@ -19,12 +21,14 @@ else:
     codeDir = os.path.abspath(os.path.join(currentDir, os.pardir))
     sys.path.append(codeDir)
     from ConceptDiscovery_Neo4j import CodeDatabase
+    from ConceptDiscovery_Neo4j import instantiate_db
+    from ConceptDiscovery_Neo4j import process_code_mappings
 from Utilities import json_to_ascii
 
 # Globals.
 PYVERSION = sys.version_info[0]  # Determine major version number.
 VALIDCONCEPTSRC = ["flatfile", "json"]  # The valid concept source file types.
-VALIDDICTS = ["readv2", "snomed"]  # The valid code dictionary types accepted.
+VALIDDICTS = ["ctv3", "readv2", "snomed"]  # The valid code dictionary types accepted.
 
 
 #------------------------#
@@ -43,7 +47,7 @@ parser.add_argument("-c", "--config",
                     type=str)
 parser.add_argument("-d", "--dictionary",
                     choices=VALIDDICTS,
-                    default=VALIDDICTS[0],
+                    default=VALIDDICTS[1],
                     help="The type of dictionary being used to construct the code hierarchy. Default: Read v2.",
                     type=str.lower)
 parser.add_argument("-g", "--generalise",
@@ -155,10 +159,17 @@ logger.addHandler(logConsoleHandler)
 
 
 
+#TODO assumes the database exists but is possibly empty
+
 # TODO for config file if you provide a database location then use that database, if you provide a file location then
 # TODO build the database form that file, if you provide nothing then build database from default file if the default
 # TODO db location does not exist.
 
 
+process_code_mappings.main("C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv",
+                           fileCodeDescriptions="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
+                           fileHierarchy="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
+instantiate_db.main("bolt://localhost:7687/",
+                    fileCodeDescriptions="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
+                    fileHierarchy="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
 cd = CodeDatabase.CodeDatabase("bolt://localhost:7687/")
-cd.instantiate_read_database("C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv")
