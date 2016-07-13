@@ -27,12 +27,16 @@ def main(databaseAddress, fileCodeDescriptions, fileHierarchy, dbUsername="neo4j
     session = driver.session()
 
     # Create constraints and indices if the database is being created.
-    nodeNumber = sum([i[0] for i in session.run("MATCH () RETURN count(*)")])
-    if not nodeNumber:
-        # There are no nodes in the database, so assume it is being created.
+    # The only constraint needed is that words must be unique. Codes don't have to be unique as there may be some
+    # overlap between code names in different hierarchies.
+    # Indices need to be created on :Code.code and :Code.description as these are searched on frequently. And index does
+    # not need to be created on :Word.word as this is created automatically by the addition of the unique constraint.
+    dbExists = sum([i[0] for i in session.run("MATCH (:DBExists) RETURN 1")])
+    if not dbExists:
+        session.run("CREATE (:DBExists)")  # Add the dummy node indicating that the database has been created.
         session.run("CREATE CONSTRAINT ON (word:Word) ASSERT word.word IS UNIQUE")  # Each word must be unique.
-        session.run("CREATE INDEX ON :Word(word)")  # Index words to speed up looking up words.
-        session.run("CREATE INDEX ON :Code(code)")  # Index codes to speed up looking up codes by name.
+        session.run("CREATE INDEX ON :Code(code)")  # Index code names.
+        session.run("CREATE INDEX ON :Code(description)")  # Index code descriptions.
 
     #TODO Set label for the type of the code from the value in the file.
     #TODO http://stackoverflow.com/questions/24992977/neo4j-cypher-creating-nodes-and-setting-labels-with-load-csv
