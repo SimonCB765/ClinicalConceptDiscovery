@@ -28,6 +28,51 @@ class DatabaseOperations(object):
         self._dbUsername = dbUser  # The username to use when accessing the database.
         self._dbPassword = dbPass  # The password associated with the username.
 
+    def get_codes_from_words(self, words, codeFormat=None):
+        """Get codes based on bags of words.
+
+        Each entry in words should contain a list of words, all of which must be present in a code's description
+        before the code will be returned for that entry.
+
+        :param words:       The words to find codes for. Each entry should contain a list of words, all of which must be
+                                present in a code's description before the code is deemed to be a match. Each word is
+                                assumed to be a string.
+        :type words:        list of lists
+        :param codeFormat:  The code format to look through when extracting descriptions
+        :type codeFormat:   str
+        :return:            Sets of codes. Element i of the return value will contain the codes that have descriptions
+                                with all the words contained in words[i].
+        :rtype:             list of sets
+
+        """
+
+        # Setup the database. Encryption is set to False for local setups.
+        driver = neo.GraphDatabase.driver(self._databaseAddress,
+                                          auth=neo.basic_auth(self._dbUsername, self._dbPassword),
+                                          encrypted=False)
+        session = driver.session()
+
+        # Go through each bag of words and select only the codes that contain all words in the bag in their description.
+        returnValue = []
+        for i in words:
+            # Find all codes that have a relationship with every word in the bag of words.
+            wordBag = set(i)  # Remove any duplicate words in the bag.
+            result = session.run("MATCH (c:{0:s}) -[:DescribedBy]-> (w:Word) "
+                                 "WHERE w.word IN ['{1:s}']"
+                                 "WITH c.code AS code, COLLECT(w.word) AS words "
+                                 "WHERE length(words) = {2:d} "
+                                 #"WHERE ALL(word IN ['{1:s}'] WHERE word in words) "
+                                 "RETURN code, words"
+                                 .format(codeFormat if codeFormat else "Code", "', '".join(wordBag), len(wordBag)))
+
+            # Record the codes with a description that contains all the words in the current bag of words.
+            returnValue.append([j["code"] for j in result])
+
+        # Close the session.
+        session.close()
+
+        return returnValue
+
     def get_descriptions(self, codes, codeFormat=None):
         """Get the descriptions of a list of codes.
 
