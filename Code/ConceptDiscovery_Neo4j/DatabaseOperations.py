@@ -2,7 +2,6 @@
 
 # Python imports.
 import logging
-import os
 
 # 3rd party imports.
 import neo4j.v1 as neo

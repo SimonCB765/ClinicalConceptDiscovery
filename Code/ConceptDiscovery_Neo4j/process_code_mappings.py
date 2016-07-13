@@ -2,7 +2,6 @@
 
 # Python imports.
 import re
-import sys
 
 
 def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, fileHierarchy=None):
