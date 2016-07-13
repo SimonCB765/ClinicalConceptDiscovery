@@ -28,6 +28,39 @@ class DatabaseOperations(object):
         self._dbUsername = dbUser  # The username to use when accessing the database.
         self._dbPassword = dbPass  # The password associated with the username.
 
+    def get_descriptions(self, codes, codeFormat=None):
+        """Get the descriptions of a list of codes.
+
+        Any supplied code that is not in the hierarchy will be ignored.
+
+        :param codes:       The codes to extract the descriptions for.
+        :type codes:        list
+        :param codeFormat:  The code format to look through when extracting descriptions
+        :type codeFormat:   str
+        :return:            The descriptions of the input codes.
+        :rtype:             list
+
+        """
+
+        # Setup the database. Encryption is set to False for local setups.
+        driver = neo.GraphDatabase.driver(self._databaseAddress,
+                                          auth=neo.basic_auth(self._dbUsername, self._dbPassword),
+                                          encrypted=False)
+        session = driver.session()
+
+        # Get the descriptions.
+        result = session.run("MATCH (c:{0:s}) "
+                             "WHERE c.code IN ['{1:s}'] "
+                             "RETURN c.code AS code, c.description AS description"
+                             .format(codeFormat if codeFormat else "Code", "', '".join(codes)))
+
+        # Close the session.
+        session.close()
+
+        # Generate the return values.
+        descriptions = {i["code"]: i["description"] for i in result}
+        return [descriptions[i] for i in codes]
+
     def update_database(self, fileCodeDescriptions, fileHierarchy, delimiter='\t'):
         """Setup the Neo4j database from files of code definitions and relationships.
 
