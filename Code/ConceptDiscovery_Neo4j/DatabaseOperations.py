@@ -99,7 +99,8 @@ class DatabaseOperations(object):
         # Go through each bag of words and select only the codes that contain all words in the bag in their description.
         returnValue = []
         for i in words:
-            # Find all codes that have a relationship with every word in the bag of words.
+            # Find all codes that have a relationship with every word in the bag of words. The method used here relies
+            # on each word having a unique node.
             wordBag = set(i)  # Remove any duplicate words in the bag.
             result = session.run("MATCH (c:{0:s}) -[:DescribedBy]-> (w:Word) "
                                  "WHERE w.word IN ['{1:s}']"
