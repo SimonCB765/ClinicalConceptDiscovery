@@ -28,7 +28,7 @@ class DatabaseOperations(object):
         self._dbUsername = dbUser  # The username to use when accessing the database.
         self._dbPassword = dbPass  # The password associated with the username.
 
-    def instantiate_database(self, fileCodeDescriptions, fileHierarchy, delimiter='\t'):
+    def update_database(self, fileCodeDescriptions, fileHierarchy, delimiter='\t'):
         """Setup the Neo4j database from files of code definitions and relationships.
 
         :param fileCodeDescriptions:    The location of the file containing the descriptions of the codes.
@@ -69,7 +69,7 @@ class DatabaseOperations(object):
         query = ("USING PERIODIC COMMIT 500 "
                  "LOAD CSV WITH HEADERS FROM 'file:/{0:s}' AS line FIELDTERMINATOR '\t' "
                  "WITH line, split(line.words, ';') AS words "
-                 "LIMIT 5 "
+                 "LIMIT 25 "
                  "UNWIND words AS word "
                  "MERGE (c:Code {{code: line.code, description: line.description, level: toInt(line.level)}}) "
                  "ON CREATE SET c.format = line.format "
@@ -95,7 +95,7 @@ class DatabaseOperations(object):
         query = ("USING PERIODIC COMMIT 500 "
                  "LOAD CSV WITH HEADERS FROM 'file:/{0:s}' AS line FIELDTERMINATOR '\t' "
                  "WITH line, split(line.relationships, ';') AS relationships "
-                 "LIMIT 5 "
+                 "LIMIT 25 "
                  "MATCH (child:Code {{code: line.child }}) "
                  "MATCH (parent:Code {{code: line.parent }}) "
                  "CREATE (child) -[p:Parent {{relationships: relationships}}]-> (parent)"

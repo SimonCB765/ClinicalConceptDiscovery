@@ -169,5 +169,5 @@ process_code_mappings.main("C:/Users/Simon/Documents/Surrey/ClinicalConceptDisco
                            fileHierarchy="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
 
 cd = DatabaseOperations.DatabaseOperations("bolt://localhost:7687/")
-cd.instantiate_database("C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
-                        "C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
+cd.update_database("C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
+                   "C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
