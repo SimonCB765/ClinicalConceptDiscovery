@@ -11,8 +11,7 @@ import sys
 # User imports.
 if __package__ == "ConceptDiscovery_Neo4j":
     # If the package is ConceptDiscovery_Neo4j, then relative imports are needed.
-    from . import CodeDatabase
-    from . import instantiate_db
+    from . import DatabaseOperations
     from . import process_code_mappings
 else:
     # The code was not called from within the Code directory using 'python -m ConceptDiscovery_Neo4j'.
@@ -20,8 +19,7 @@ else:
     currentDir = os.path.dirname(os.path.join(os.getcwd(), __file__))  # Directory containing this file.
     codeDir = os.path.abspath(os.path.join(currentDir, os.pardir))
     sys.path.append(codeDir)
-    from ConceptDiscovery_Neo4j import CodeDatabase
-    from ConceptDiscovery_Neo4j import instantiate_db
+    from ConceptDiscovery_Neo4j import DatabaseOperations
     from ConceptDiscovery_Neo4j import process_code_mappings
 from Utilities import json_to_ascii
 
@@ -169,7 +167,7 @@ logger.addHandler(logConsoleHandler)
 process_code_mappings.main("C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv",
                            fileCodeDescriptions="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
                            fileHierarchy="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
-instantiate_db.main("bolt://localhost:7687/",
-                    fileCodeDescriptions="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
-                    fileHierarchy="C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
-cd = CodeDatabase.CodeDatabase("bolt://localhost:7687/")
+
+cd = DatabaseOperations.DatabaseOperations("bolt://localhost:7687/")
+cd.instantiate_database("C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_codes",
+                        "C:/Users/Simon/Documents/Surrey/ClinicalConceptDiscovery/Data/Coding.tsv_hierarchy")
