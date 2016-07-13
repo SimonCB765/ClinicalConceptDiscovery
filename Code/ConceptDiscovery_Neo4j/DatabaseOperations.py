@@ -28,7 +28,7 @@ class DatabaseOperations(object):
         self._dbUsername = dbUser  # The username to use when accessing the database.
         self._dbPassword = dbPass  # The password associated with the username.
 
-    def get_codes_from_phrases(self, quoted, codeFormat=None):
+    def get_codes_from_phrases(self, phrases, codeFormat=None):
         """Get the codes that have a description where all the supplied quoted phrases match.
 
         Each entry in quoted should contain a set of phrase strings, all of which must be found in a given
@@ -36,9 +36,9 @@ class DatabaseOperations(object):
 
         The search is case insensitive.
 
-        :param quoted:      Sets of phrases. Each entry should contain a set of phrases, all of which must be found in
+        :param phrases:     Sets of phrases. Each entry should contain a set of phrases, all of which must be found in
                                 a code's description before the code is deemed a match.
-        :type quoted:       list of sets
+        :type phrases:      list of sets
         :param codeFormat:  The code format to look through when extracting descriptions
         :type codeFormat:   str
         :return:            Sets of codes. Element i of the return value will contain the codes that have descriptions
@@ -55,13 +55,14 @@ class DatabaseOperations(object):
 
         # Go through each set of hrases and select only the codes that contain all phrases in their description.
         returnValue = []
-        for i in quoted:
+        for i in phrases:
             # Find all codes that have a relationship with every word in the bag of words.
-            phrases = set([j.lower() for j in i])  # Remove any duplicate phrases and make them all lowercase.
+            uniquePhrases = set([j.lower() for j in i])  # Remove any duplicate phrases and make them all lowercase.
             result = session.run("MATCH (c:{0:s}) "
                                  "WHERE ALL(regexp IN ['{1:s}'] WHERE c.description CONTAINS regexp) "
                                  "RETURN c.code AS code"
-                                 .format(codeFormat if codeFormat else "Code", "', '".join(phrases), len(phrases)))
+                                 .format(codeFormat if codeFormat else "Code",
+                                         "', '".join(uniquePhrases), len(uniquePhrases)))
 
             # Record the codes with a description that contains all the phrases.
             returnValue.append([j["code"] for j in result])
