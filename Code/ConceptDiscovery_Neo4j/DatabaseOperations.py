@@ -178,11 +178,14 @@ class DatabaseOperations(object):
         # minimal impact outside of node creation.
         dbExists = sum([i[0] for i in session.run("MATCH (:DBExists) RETURN 1")])
         if not dbExists:
-            session.run("CREATE (:DBExists)")  # Add the dummy node indicating that the database has been created.
-            session.run("CREATE CONSTRAINT ON (word:Word) ASSERT word.word IS UNIQUE")  # Each word must be unique.
-            session.run("CREATE INDEX ON :Code(code)")  # Index code names.
-            session.run("CREATE INDEX ON :Code(description)")  # Index code descriptions.
-            session.run("CREATE INDEX ON :Code(format)")  # Index the code formats.
+            # Setup the constraints as a single transaction to ensure either all are setup or none are.
+            transaction = session.begin_transaction()
+            transaction.run("CREATE CONSTRAINT ON (word:Word) ASSERT word.word IS UNIQUE")  # Each word must be unique.
+            transaction.run("CREATE INDEX ON :Code(code)")  # Index code names.
+            transaction.run("CREATE INDEX ON :Code(description)")  # Index code descriptions.
+            transaction.run("CREATE INDEX ON :Code(format)")  # Index the code formats.
+            transaction.run("CREATE (:DBExists)")  # Add the dummy node indicating that the database has been created.
+            transaction.commit()
 
         # Create the codes, words and the relationships between codes and words.
         # Have to double brace {{ }} the node and edge parameters to account for the use of a formatted string.
