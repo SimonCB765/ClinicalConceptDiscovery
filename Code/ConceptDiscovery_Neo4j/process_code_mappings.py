@@ -9,7 +9,7 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
     """Convert mappings between codes and descriptions into the mappings needed to construct nodes and relationships.
 
     All parent codes will be related to their child codes using the relationship 'Parent' in addition to any more
-    specific terms (e.g. has_a, is_a).
+    specific terms (e.g. has_a, is_a). All Read V2 codes are deemed to have an is_a relationship with their parent.
 
     :param fileReadV2:              A mapping from Read v2 codes to their descriptions. Each line should be formatted
                                         to contain two values separated by a tab. The first value should be the code,
@@ -37,7 +37,7 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
             open(fileCodeDescriptions, 'w') as fidCodeDescriptions, open(fileHierarchy, 'w') as fidHierarchy:
         # Create file headers.
         fidCodeDescriptions.write("code\tformat\tlevel\tdescription\twords\n")
-        fidHierarchy.write("child\tparents\trelationships\n")
+        fidHierarchy.write("child\tparent\trelationships\n")
 
         # Add the Read v2 codes to the output files.
         for line in fidReadV2:
@@ -60,4 +60,5 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
             fidCodeDescriptions.write("{0:s}\tReadV2\t{1:d}\t{2:s}\t{3:s}\n"
                                       .format(code, len(code), description, ';'.join(words)))
             if parent:
-                fidHierarchy.write("{0:s}\t{1:s}\tParent\n".format(code, parent))
+                # All Read V2 codes are deemed to have an is_a relationship with their parent.
+                fidHierarchy.write("{0:s}\t{1:s}\tis_a\n".format(code, parent))
