@@ -176,7 +176,7 @@ class DatabaseOperations(object):
                  "LIMIT 25 "
                  "MATCH (child:Code {{code: line.child }}) "
                  "MATCH (parent:Code {{code: line.parent }}) "
-                 "CREATE (child) -[p:Parent {{relationships: relationships}}]-> (parent)"
+                 "CREATE UNIQUE (child) -[p:Parent {{relationships: relationships}}]-> (parent)"
                  ).format(fileHierarchy)
         session.run(query)
 
