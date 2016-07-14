@@ -41,6 +41,8 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
         for line in fidReadV2:
             code, description = (line.strip()).split(delimiter)
             description = description.lower()
+            description = re.sub('"', "'", description)  # Replace all double quotes with single quotes as double
+                                                         # quotes will be used to quote strings in Neo4j statements.
 
             parent = ''
             if len(code) > 1:
@@ -53,6 +55,9 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
 
             # Split the description into words.
             words = wordFinder.split(description)
+
+            # Remove some common words.
+            words = [i for i in words if i not in ['a', "of", "the"]]
 
             # Write out the information about the code.
             fidCodeDescriptions.write("{0:s}\tReadV2\t{1:d}\t{2:s}\t{3:s}\n"
