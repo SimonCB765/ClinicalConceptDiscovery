@@ -37,7 +37,7 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
             open(fileCodeDescriptions, 'w') as fidCodeDescriptions, open(fileHierarchy, 'w') as fidHierarchy:
         # Create file headers.
         fidCodeDescriptions.write("code\tformat\tlevel\tdescription\twords\n")
-        fidHierarchy.write("child\tparent\trelationship\n")
+        fidHierarchy.write("child\tparent\tformat\trelationship\n")
 
         # Add the Read v2 codes to the output files.
         for line in fidReadV2:
@@ -66,4 +66,4 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
                                       .format(code, len(code), description, ';'.join(words)))
             if parent:
                 # All Read V2 codes are deemed to have an is_a relationship with their parent.
-                fidHierarchy.write("{0:s}\t{1:s}\tis_a\n".format(code, parent))
+                fidHierarchy.write("{0:s}\t{1:s}\tReadV2\tis_a\n".format(code, parent))
