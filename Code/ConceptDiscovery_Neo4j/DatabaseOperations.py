@@ -1,32 +1,24 @@
-"""Class for managing access to a Neo4j database of clinical codes."""
+"""Class for running concept related queries on a Neo4j database of clinical codes."""
 
 # Python imports.
 import logging
-
-# 3rd party imports.
-import neo4j.v1 as neo
 
 # Globals.
 LOGGER = logging.getLogger(__name__)
 
 
 class DatabaseOperations(object):
-    """Class responsible for managing access to a Neo4j database containing the relationships between clinical codes."""
+    """Class defining high level queries to run on a Neo4j database of clinical code."""
 
-    def __init__(self, databaseAddress, dbUser="neo4j", dbPass="root"):
-        """Initialise the database access parameters.
+    def __init__(self, databaseController):
+        """Initialise an object.
 
-        :param databaseAddress:     The address of the Neo4j database to use.
-        :type databaseAddress:      str
-        :param dbUser:              The username for the Neo4j database.
-        :type dbUser:               str
-        :param dbPass:              The password for the supplied username.
-        :type dbPass:               str
+        :param databaseController:  The object controlling access to the Neo4j database.
+        :type databaseController:   DatabaseManager object
 
         """
-        self._databaseAddress = databaseAddress  # The address of the Neo4j database.
-        self._dbUsername = dbUser  # The username to use when accessing the database.
-        self._dbPassword = dbPass  # The password associated with the username.
+
+        self._databaseController = databaseController
 
     def get_codes_from_phrases(self, phrases, codeFormat=None):
         """Get the codes that have a description where all the supplied quoted phrases match.
@@ -47,11 +39,8 @@ class DatabaseOperations(object):
 
         """
 
-        # Setup the database. Encryption is set to False for local setups.
-        driver = neo.GraphDatabase.driver(self._databaseAddress,
-                                          auth=neo.basic_auth(self._dbUsername, self._dbPassword),
-                                          encrypted=False)
-        session = driver.session()
+        # Get access to the database
+        session = self._databaseController.generate_session()
 
         # Go through each set of hrases and select only the codes that contain all phrases in their description.
         returnValue = []
@@ -90,11 +79,8 @@ class DatabaseOperations(object):
 
         """
 
-        # Setup the database. Encryption is set to False for local setups.
-        driver = neo.GraphDatabase.driver(self._databaseAddress,
-                                          auth=neo.basic_auth(self._dbUsername, self._dbPassword),
-                                          encrypted=False)
-        session = driver.session()
+        # Get access to the database
+        session = self._databaseController.generate_session()
 
         # Go through each bag of words and select only the codes that contain all words in the bag in their description.
         returnValue = []
@@ -131,11 +117,8 @@ class DatabaseOperations(object):
 
         """
 
-        # Setup the database. Encryption is set to False for local setups.
-        driver = neo.GraphDatabase.driver(self._databaseAddress,
-                                          auth=neo.basic_auth(self._dbUsername, self._dbPassword),
-                                          encrypted=False)
-        session = driver.session()
+        # Get access to the database
+        session = self._databaseController.generate_session()
 
         # Get the descriptions.
         result = session.run("MATCH (c:{0:s}) "
@@ -149,83 +132,3 @@ class DatabaseOperations(object):
         # Generate the return values.
         descriptions = {i["code"]: i["description"] for i in result}
         return [descriptions[i] for i in codes]
-
-    def update_database(self, fileCodeDescriptions, fileHierarchy, delimiter='\t'):
-        """Setup the Neo4j database from files of code definitions and relationships.
-
-        :param fileCodeDescriptions:    The location of the file containing the descriptions of the codes.
-        :type fileCodeDescriptions:     str
-        :param fileHierarchy:           The location of the file containing the code hierarchy.
-        :type fileHierarchy:            str
-        :param delimiter:               The delimiter used in the files.
-        :type delimiter:                str
-
-        """
-
-        # Setup the database. Encryption is set to False for local setups.
-        driver = neo.GraphDatabase.driver(self._databaseAddress,
-                                          auth=neo.basic_auth(self._dbUsername, self._dbPassword),
-                                          encrypted=False)
-        session = driver.session()
-
-        # Create constraints and indices if the database is being created.
-        # The only constraint needed is that words must be unique. Codes don't have to be unique as there may be some
-        # overlap between code names in different hierarchies.
-        # Indices need to be created on :Code.code and :Code.description as these are searched on frequently. And index
-        # does not need to be created on :Word.word as this is created automatically by the addition of the unique
-        # constraint.
-        # The code format property is also indexed, however format properties are transient and this index will have
-        # minimal impact outside of node creation.
-        dbExists = sum([i[0] for i in session.run("MATCH (:DBExists) RETURN 1")])
-        if not dbExists:
-            # Setup the constraints as a single transaction to ensure either all are setup or none are.
-            transaction = session.begin_transaction()
-            transaction.run("CREATE CONSTRAINT ON (word:Word) ASSERT word.word IS UNIQUE")  # Each word must be unique.
-            transaction.run("CREATE INDEX ON :Code(code)")  # Index code names.
-            transaction.run("CREATE INDEX ON :Code(description)")  # Index code descriptions.
-            transaction.run("CREATE INDEX ON :Code(format)")  # Index the code formats.
-            transaction.run("CREATE (:DBExists)")  # Add the dummy node indicating that the database has been created.
-            transaction.commit()
-
-        # Create the codes, words and the relationships between codes and words.
-        # Have to double brace {{ }} the node and edge parameters to account for the use of a formatted string.
-        # The Code.format property is set outside the MERGE in order to ensure that the merge does not try and match it.
-        # This would fail as the format gets removed later, and therefore the merge would create a duplicate node.
-        query = ("USING PERIODIC COMMIT 500 "
-                 "LOAD CSV WITH HEADERS FROM 'file:/{0:s}' AS line FIELDTERMINATOR '\t' "
-                 "WITH line, split(line.words, ';') AS words "
-                 "LIMIT 25 "
-                 "UNWIND words AS word "
-                 "MERGE (c:Code {{code: line.code, description: line.description, level: toInt(line.level)}}) "
-                 "ON CREATE SET c.format = line.format "
-                 "MERGE (w:Word {{word: word}}) "
-                 "MERGE (c) -[d:DescribedBy]-> (w)"
-                 ).format(fileCodeDescriptions)
-        session.run(query)
-
-        # Update the format labels on the newly added codes. As the format property is removed once the labels are
-        # updated, this will only match those codes that are newly added.
-        session.run("MATCH (c:Code {format: 'ReadV2'}) "
-                    "SET c:ReadV2 "
-                    "REMOVE c.format")
-        session.run("MATCH (c:Code {format: 'CTV3'}) "
-                    "SET c:CTV3 "
-                    "REMOVE c.format")
-        session.run("MATCH (c:Code {format: 'SNOMED'}) "
-                    "SET c:SNOMED "
-                    "REMOVE c.format")
-
-        # Create the relationships between parent and child nodes.
-        # Have to double brace {{ }} the node and edge parameters to account for the use of a formatted string.
-        query = ("USING PERIODIC COMMIT 500 "
-                 "LOAD CSV WITH HEADERS FROM 'file:/{0:s}' AS line FIELDTERMINATOR '\t' "
-                 "WITH line, split(line.relationships, ';') AS relationships "
-                 "LIMIT 25 "
-                 "MATCH (child:Code {{code: line.child }}) "
-                 "MATCH (parent:Code {{code: line.parent }}) "
-                 "CREATE UNIQUE (child) -[p:Parent {{relationships: relationships}}]-> (parent)"
-                 ).format(fileHierarchy)
-        session.run(query)
-
-        # Close the session.
-        session.close()
