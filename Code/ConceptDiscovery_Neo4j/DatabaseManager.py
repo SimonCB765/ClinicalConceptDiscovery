@@ -95,7 +95,8 @@ class DatabaseManager(object):
                     # Only add codes that are of the correct format.
                     # Properties have to be double braced {{ }} to account for the use of a formatted string.
                     transaction.run("MERGE (c:{0:s} {{code: \"{1:s}\"}}) "
-                                    "SET c += {{stale: FALSE, description: \"{2:s}\", level: toInt({3:s})}} "
+                                    "SET c += {{stale: FALSE, descr_pretty: \"{2:s}\", descr_search: lower(\"{2:s}\"), "
+                                        "level: toInt({3:s})}} "
                                     "WITH c "
                                     "UNWIND [\"{4:s}\"] as word "
                                     "MERGE (w:Word {{word: word}}) "
