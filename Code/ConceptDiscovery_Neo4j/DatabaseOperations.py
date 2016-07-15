@@ -180,7 +180,7 @@ class DatabaseOperations(object):
         for i in codeFormats:
             result = session.run("MATCH (c:{0:s}) "
                                  "WHERE c.code IN ['{1:s}'] "
-                                 "RETURN c.code AS code, c.description AS description"
+                                 "RETURN c.code AS code, c.descr_pretty AS description"
                                  .format(i, "', '".join(codes)))
             for j in result:
                 descriptions[j["code"]][i] = j["description"]
