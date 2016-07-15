@@ -42,7 +42,6 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
         # Add the Read v2 codes to the output files.
         for line in fidReadV2:
             code, description = (line.strip()).split(delimiter)
-            description = description.lower()
             description = re.sub('"', "'", description)  # Replace all double quotes with single quotes as double
                                                          # quotes will be used to quote strings in Neo4j statements.
 
@@ -59,7 +58,7 @@ def main(fileReadV2, fileCTV3=None, fileSNOMED=None, fileCodeDescriptions=None, 
             words = wordFinder.split(description)
 
             # Remove some common words.
-            words = [i for i in words if i not in wordsToRemove]
+            words = [i.lower() for i in words if i not in wordsToRemove]
 
             # Write out the information about the code.
             fidCodeDescriptions.write("{0:s}\tReadV2\t{1:d}\t{2:s}\t{3:s}\n"
