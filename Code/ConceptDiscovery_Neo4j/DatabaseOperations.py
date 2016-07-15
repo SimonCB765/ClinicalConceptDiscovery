@@ -103,17 +103,25 @@ class DatabaseOperations(object):
 
         return returnValue
 
-    def get_descriptions(self, codes, codeFormat=None):
+    def get_descriptions(self, codes, codeFormats):
         """Get the descriptions of a list of codes.
-
-        Any supplied code that is not in the hierarchy will be ignored.
 
         :param codes:       The codes to extract the descriptions for.
         :type codes:        list
-        :param codeFormat:  The code format to look through when extracting descriptions
-        :type codeFormat:   str
-        :return:            The descriptions of the input codes.
-        :rtype:             list
+        :param codeFormats: The code formats to look through when extracting descriptions.
+        :type codeFormats:  list
+        :return:            The descriptions of the input codes. Each input code is treated as a key in the returned
+                                dictionary. The value associated with a code is a dictionary mapping the codeFormats
+                                to the description of the code in that format. For example:
+                                codes = ["A", "B", "C"]
+                                codeFormats = ["ReadV2", "CTV3"]
+                                return = {
+                                            "A": {"ReadV2": "XXX"},
+                                            "B": {"CTV3": "YYY"},
+                                            "C": {"ReadV2": "ZZZ-0", "CTV3": "ZZZ-00"}
+                                         }
+                                Code A was only present in the Read v2 hierarchy, B in the CTV3 hierarchy and C in both.
+        :rtype:             dict
 
         """
 
@@ -121,14 +129,17 @@ class DatabaseOperations(object):
         session = self._databaseController.generate_session()
 
         # Get the descriptions.
-        result = session.run("MATCH (c:{0:s}) "
-                             "WHERE c.code IN ['{1:s}'] "
-                             "RETURN c.code AS code, c.description AS description"
-                             .format(codeFormat if codeFormat else "Code", "', '".join(codes)))
+        descriptions = {i: {} for i in codes}
+        for i in codeFormats:
+            result = session.run("MATCH (c:{0:s}) "
+                                 "WHERE c.code IN ['{1:s}'] "
+                                 "RETURN c.code AS code, c.description AS description"
+                                 .format(i, "', '".join(codes)))
+            for j in result:
+                descriptions[j["code"]][i] = j["description"]
 
         # Close the session.
         session.close()
 
         # Generate the return values.
-        descriptions = {i["code"]: i["description"] for i in result}
-        return [descriptions[i] for i in codes]
+        return descriptions
