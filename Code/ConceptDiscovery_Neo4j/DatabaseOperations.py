@@ -23,7 +23,7 @@ class DatabaseOperations(object):
 
         self._databaseController = databaseController
 
-    def get_codes_from_phrases(self, phrases, codeFormat=None):
+    def get_codes_from_phrases(self, phrases, codeFormats):
         """Get the codes that have a description where all the supplied quoted phrases match.
 
         Each entry in quoted should contain a set of phrase strings, all of which must be found in a given
@@ -33,31 +33,52 @@ class DatabaseOperations(object):
 
         :param phrases:     Sets of phrases. Each entry should contain a set of phrases, all of which must be found in
                                 a code's description before the code is deemed a match.
-        :type phrases:      list of sets
-        :param codeFormat:  The code format to look through when extracting descriptions
-        :type codeFormat:   str
-        :return:            Sets of codes. Element i of the return value will contain the codes that have descriptions
-                                containing all phrases in quoted[i].
-        :rtype:             list of sets
+        :type phrases:      list
+        :param codeFormats: The code formats to look through when extracting descriptions.
+        :type codeFormats:  list
+        :return:            A list of dictionaries. The list contains one element per entry in phrases, with the
+                                returned list at index i containing the result for entry phrases[i]. The ith returned
+                                dictionary will contain a subset of the entries in codeFormats as its keys. An entry
+                                from codeFormats is present as a key when a code from that hierarchy contained all the
+                                phrases in phrases[i]. For example:
+                                words = [["kidney disease"], ["fOo foo", "BaR"], ["type 1", "diabetes"]]
+                                codeFormats = ["ReadV2", "CTV3"]
+                                result = [
+                                            {"ReadV2": {"A", "B", "C"}},
+                                            {},
+                                            {"ReadV2": {"X", "Y"}, "CTV3": {"C1", "C2", "C3", "X", "Y"}}
+                                         ]
+                                These results would indicate that the phrase "kidney disease" were found in three
+                                code descriptions in the ReadV2 hierarchy (A, B and C), but none in the CTV3 hierarchy.
+                                The phrases "foo foo" and "bar" were found together in no code descriptions.
+                                The phrases "type 1" and "diabetes" were found together in descriptions of codes in both
+                                the ReadV2 and CTV3 hierarchies.
+        :rtype:             list
 
         """
 
         # Get access to the database
         session = self._databaseController.generate_session()
 
-        # Go through each set of hrases and select only the codes that contain all phrases in their description.
+        # Go through each set of phrases and select only the codes that contain all phrases in their description.
         returnValue = []
         for i in phrases:
-            # Find all codes that have a relationship with every word in the bag of words.
             uniquePhrases = set([j.lower() for j in i])  # Remove any duplicate phrases and make them all lowercase.
-            result = session.run("MATCH (c:{0:s}) "
-                                 "WHERE ALL(regexp IN ['{1:s}'] WHERE c.description CONTAINS regexp) "
-                                 "RETURN c.code AS code"
-                                 .format(codeFormat if codeFormat else "Code",
-                                         "', '".join(uniquePhrases), len(uniquePhrases)))
+            queryResults = {}
+            for j in codeFormats:
+                result = session.run("MATCH (c:{0:s}) "
+                                     "WHERE ALL(phrase IN ['{1:s}'] WHERE c.descr_search CONTAINS phrase) "
+                                     "RETURN c.code AS code"
+                                     .format(j, "', '".join(uniquePhrases)))
+                try:
+                    result.peek()
+                    queryResults[j] = {k["code"] for k in result}
+                except ResultError:
+                    # The peek failed as the description of no code contained all the searched for phrases.
+                    pass
 
-            # Record the codes with a description that contains all the phrases.
-            returnValue.append([j["code"] for j in result])
+            # Record the codes with a description that contains all the words in the current bag of words.
+            returnValue.append(queryResults)
 
         # Close the session.
         session.close()
