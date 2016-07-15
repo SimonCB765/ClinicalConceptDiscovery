@@ -105,8 +105,6 @@ class DatabaseManager(object):
                                     .format(codeFormat, code, description, level, '", "'.join(words.split(';'))))
 
                     linesAdded += 1
-                    if linesAdded == 10:
-                        break
                     if linesAdded == transactionSize:
                         transaction.commit()
                         transaction = session.begin_transaction()  # Start the next transaction.
@@ -137,8 +135,6 @@ class DatabaseManager(object):
                                 .format(codeFormat, childCode, parentCode, relationship))
 
                 linesAdded += 1
-                if linesAdded == 5:
-                    break
                 if linesAdded == transactionSize:
                     transaction.commit()
                     transaction = session.begin_transaction()  # Start the next transaction.
