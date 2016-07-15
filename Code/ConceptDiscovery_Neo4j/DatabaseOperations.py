@@ -3,6 +3,9 @@
 # Python imports.
 import logging
 
+# 3rd party imports.
+from neo4j.v1.exceptions import ResultError
+
 # Globals.
 LOGGER = logging.getLogger(__name__)
 
@@ -61,21 +64,36 @@ class DatabaseOperations(object):
 
         return returnValue
 
-    def get_codes_from_words(self, words, codeFormat=None):
+    def get_codes_from_words(self, words, codeFormats):
         """Get codes based on bags of words.
 
         Each entry in words should contain a list of words, all of which must be present in a code's description
-        before the code will be returned for that entry.
+        before the code will be returned for that entry. The search is case insensitive.
 
         :param words:       The words to find codes for. Each entry should contain a list of words, all of which must be
                                 present in a code's description before the code is deemed to be a match. Each word is
                                 assumed to be a string.
-        :type words:        list of lists
-        :param codeFormat:  The code format to look through when extracting descriptions
-        :type codeFormat:   str
-        :return:            Sets of codes. Element i of the return value will contain the codes that have descriptions
-                                with all the words contained in words[i].
-        :rtype:             list of sets
+        :type words:        list
+        :param codeFormats: The code formats to look through when extracting descriptions.
+        :type codeFormats:  list
+        :return:            A list of dictionaries. The list contains one element per entry in words, with the returned
+                                list at index i containing the result for entry words[i]. Each returned dictionary
+                                will contain a subset of the entries in codeFormats as its keys. An entry from
+                                codeFormats is present as a key when a code from that hierarchy contained all the words
+                                in the bag. For example:
+                                words = [["kidney", "disease"], ["fOo", "BaR"], ["type", "diabetes"]]
+                                codeFormats = ["ReadV2", "CTV3"]
+                                result = [
+                                            {"ReadV2": {"A", "B", "C"}},
+                                            {},
+                                            {"ReadV2": {"X", "Y"}, "CTV3": {"C1", "C2", "C3", "X", "Y"}}
+                                         ]
+                                These results would indicate that the words "kidney" and "disease" were found in three
+                                code descriptions in the ReadV2 hierarchy (A, B and C), but none in the CTV3 hierarchy.
+                                The words "foo" and "bar" were found together in no code descriptions.
+                                The words "type" and "diabetes" were found together in descriptions of codes in both
+                                the ReadV2 and CTV3 hierarchies.
+        :rtype:             list
 
         """
 
@@ -87,16 +105,24 @@ class DatabaseOperations(object):
         for i in words:
             # Find all codes that have a relationship with every word in the bag of words. The method used here relies
             # on each word having a unique node.
-            wordBag = set(i)  # Remove any duplicate words in the bag.
-            result = session.run("MATCH (c:{0:s}) -[:DescribedBy]-> (w:Word) "
-                                 "WHERE w.word IN ['{1:s}']"
-                                 "WITH c.code AS code, COLLECT(w.word) AS words "
-                                 "WHERE length(words) = {2:d} "
-                                 "RETURN code, words"
-                                 .format(codeFormat if codeFormat else "Code", "', '".join(wordBag), len(wordBag)))
+            wordBag = {j.lower() for j in i}  # Remove any duplicate words and convert all words to lowercase.
+            queryResults = {}
+            for j in codeFormats:
+                result = session.run("MATCH (c:{0:s}) -[:DescribedBy]-> (w:Word) "
+                                     "WHERE w.word IN ['{1:s}']"
+                                     "WITH c.code AS code, COLLECT(w.word) AS words "
+                                     "WHERE length(words) = {2:d} "
+                                     "RETURN code"
+                                     .format(j, "', '".join(wordBag), len(wordBag)))
+                try:
+                    result.peek()
+                    queryResults[j] = {k["code"] for k in result}
+                except ResultError:
+                    # The peek failed as the description of no code contained all the searched for words.
+                    pass
 
             # Record the codes with a description that contains all the words in the current bag of words.
-            returnValue.append([j["code"] for j in result])
+            returnValue.append(queryResults)
 
         # Close the session.
         session.close()
